@@ -1,0 +1,8 @@
+[
+  {
+    "id": "eval-001",
+    "query": "Reconcile Invoice #INV-9021 against PO #PO-4412",
+    "expected_agent": "reasoning",
+    "expected_risk": "LOW"
+  }
+]
