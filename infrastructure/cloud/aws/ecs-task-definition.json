@@ -1,0 +1,15 @@
+{
+  "family": "omniagent-task",
+  "networkMode": "awsvpc",
+  "containerDefinitions": [
+    {
+      "name": "backend",
+      "image": "omniagent-backend:latest",
+      "essential": true,
+      "portMappings": [{ "containerPort": 8000 }]
+    }
+  ],
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048"
+}
