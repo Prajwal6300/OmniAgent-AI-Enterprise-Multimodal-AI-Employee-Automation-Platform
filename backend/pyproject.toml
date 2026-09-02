@@ -1,0 +1,15 @@
+[project]
+name = "omniagent-backend"
+version = "1.0.0"
+description = "FastAPI backend for OmniAgent AI Enterprise Platform"
+readme = "README.md"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --asyncio-mode=auto"
+testpaths = ["tests"]
