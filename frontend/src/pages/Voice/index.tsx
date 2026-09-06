@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card } from '@/components/ui/Card';
 
-export default function Voice&AudioPage() {
+export default function VoicePage() {
   return (
     <div className="space-y-6">
       <div>
