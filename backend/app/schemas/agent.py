@@ -31,3 +31,11 @@ class AgentRunRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+from agents.supervisor.schemas import (
+    SupervisorAnalyzeRequest,
+    SupervisorDecision,
+    SupervisorAnalyzeData,
+    TaskType,
+    AgentTarget
+)

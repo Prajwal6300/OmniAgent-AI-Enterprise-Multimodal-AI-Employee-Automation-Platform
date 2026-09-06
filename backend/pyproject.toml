@@ -9,6 +9,9 @@ requires-python = ">=3.11"
 line-length = 100
 target-version = "py311"
 
+[tool.ruff.lint]
+ignore = ["B008"]
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra -q --asyncio-mode=auto"
