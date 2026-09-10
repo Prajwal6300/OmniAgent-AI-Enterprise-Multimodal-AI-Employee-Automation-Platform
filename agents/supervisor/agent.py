@@ -203,3 +203,38 @@ class SupervisorAgent:
             return await self.analyze(message=task_goal)
 
         return create_fallback_decision(explanation="No task goal provided.")
+
+    async def run_document_agent(
+        self,
+        document_id: str,
+        file_bytes: bytes | None = None,
+        file_path: str | None = None,
+        filename: str = "document.bin",
+        task: str = "summarize",
+        query: str | None = None,
+        user_id: str | None = None,
+        organization_id: str | None = None,
+        request_id: str | None = None,
+    ):
+        """
+        Directly delegates execution to the Document Agent for document-related tasks.
+        Returns DocumentAnalysisResult or raises DocumentProcessingError.
+        """
+        from agents.document.agent import DocumentAgent
+        from agents.document.exceptions import DocumentProcessingError
+        try:
+            doc_agent = DocumentAgent()
+            return await doc_agent.analyze(
+                document_id=document_id,
+                file_bytes=file_bytes,
+                file_path=file_path,
+                filename=filename,
+                task=task,
+                query=query,
+                user_id=user_id,
+                organization_id=organization_id,
+                request_id=request_id
+            )
+        except Exception as exc:
+            raise DocumentProcessingError(f"Document Agent execution failed: {str(exc)}")
+
