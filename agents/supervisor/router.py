@@ -128,12 +128,49 @@ def deterministic_classify(message: str) -> SupervisorDecision | None:
             explanation="Request requires report compilation and external dispatch tool execution."
         )
 
-    # 3. Document Analysis / PDF / Invoice / Contract
-    doc_keywords = ["pdf", "invoice", "document", "docx", "contract", "receipt", "purchase order", "po-", "agreement"]
-    doc_verbs = ["summarize", "analyze", "parse", "extract", "verify", "read", "scan", "compare"]
-    if any(k in msg_lower for k in doc_keywords) and any(v in msg_lower for v in doc_verbs):
+    # 3. Document Analysis / PDF / Invoice / Contract / Policy / Manual / Report
+    doc_keywords = [
+        "pdf", "invoice", "document", "docx", "contract", "receipt",
+        "purchase order", "po-", "agreement", "manual", "machine manual", "report"
+    ]
+    doc_verbs = [
+        "summarize", "analyze", "parse", "extract", "verify",
+        "read", "scan", "compare", "explain", "findings"
+    ]
+
+    # Specific real-world company document tasks
+    img_terms = ["image", "picture", "photo", "screenshot", "diagram", "defect", "blueprint"]
+    is_doc_task = (
+        (any(k in msg_lower for k in doc_keywords) and any(v in msg_lower for v in doc_verbs)) or
+        msg_lower.startswith(("summarize this", "read this invoice", "parse this")) or
+        "findings from this report" in msg_lower or
+        "safety instructions in this machine manual" in msg_lower or
+        "read this invoice" in msg_lower or
+        "summarize this invoice" in msg_lower or
+        "summarize this company leave policy" in msg_lower or
+        "explain the important safety instructions" in msg_lower
+    )
+
+    if is_doc_task and not (
+        "database" in msg_lower or
+        "delete" in msg_lower or
+        "send this report" in msg_lower or
+        any(it in msg_lower for it in img_terms)
+    ):
+        intent_type = "document_processing"
+        if "invoice" in msg_lower:
+            intent_type = "invoice_extraction"
+        elif "policy" in msg_lower:
+            intent_type = "policy_summarization"
+        elif "manual" in msg_lower:
+            intent_type = "technical_manual_analysis"
+        elif "report" in msg_lower:
+            intent_type = "report_analysis"
+        elif "pdf" in msg_lower:
+            intent_type = "pdf_analysis"
+
         return SupervisorDecision(
-            intent="document_processing",
+            intent=intent_type,
             task_type=TaskType.DOCUMENT_ANALYSIS.value,
             capability=map_task_to_capability(TaskType.DOCUMENT_ANALYSIS.value),
             selected_agent=AgentTarget.DOCUMENT_AGENT.value,
@@ -144,27 +181,10 @@ def deterministic_classify(message: str) -> SupervisorDecision | None:
             task_plan=[
                 "Ingest and validate document structure",
                 "Extract structured text, tables, and metadata",
-                "Identify key fields and line items",
-                "Synthesize findings and return summary"
+                "Identify key fields, sections, or line items",
+                "Synthesize findings and return verified structured result"
             ],
-            explanation="Request involves document parsing and text extraction routed to Document Agent."
-        )
-    if msg_lower.startswith(("summarize this pdf", "analyze this invoice")):
-        return SupervisorDecision(
-            intent="document_summarization",
-            task_type=TaskType.DOCUMENT_ANALYSIS.value,
-            capability=map_task_to_capability(TaskType.DOCUMENT_ANALYSIS.value),
-            selected_agent=AgentTarget.DOCUMENT_AGENT.value,
-            priority="medium",
-            confidence=0.98,
-            requires_tool=False,
-            requires_approval=False,
-            task_plan=[
-                "Load PDF content",
-                "Extract high-fidelity sections",
-                "Generate executive summary"
-            ],
-            explanation="PDF analysis detected; routed to Document Agent."
+            explanation="Request involves document parsing, extraction, or summarization routed to Document Agent."
         )
 
     # 4. Image Analysis / Machine Visual / Screenshot / Inspection
