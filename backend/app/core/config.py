@@ -25,7 +25,9 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # Storage
-    STORAGE_PROVIDER: str = "minio"
+    STORAGE_PROVIDER: str = "local"
+    STORAGE_LOCAL_DIR: str = "storage/documents"
+    MAX_UPLOAD_SIZE_BYTES: int = 25 * 1024 * 1024  # 25 MB
     S3_ENDPOINT_URL: str = "http://localhost:9000"
     S3_BUCKET: str = "omniagent-documents"
     S3_ACCESS_KEY: str = "minioadmin"
