@@ -11,7 +11,9 @@ from app.schemas.agent import (
     SupervisorDecision,
 )
 from app.schemas.common import ResponseEnvelope
+from app.schemas.document import DocumentAnalysisResponseData, DocumentAnalyzeRequest
 from app.services.agent_service import AgentService
+from app.services.document_service import DocumentService
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
 
@@ -49,3 +51,25 @@ async def analyze_supervisor_request(
         request_id=request_id
     )
     return ResponseEnvelope(data=decision)
+
+
+@router.post("/document/analyze", response_model=ResponseEnvelope[DocumentAnalysisResponseData])
+async def analyze_document_request(
+    request: DocumentAnalyzeRequest,
+    http_req: Request,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session)
+):
+    """
+    Executes Document Agent deep parsing, classification, summarization, and structured extraction.
+    Validates tenant organization access and operates upon previously stored document artifacts.
+    """
+    request_id = getattr(http_req.state, "request_id", None)
+    service = DocumentService(session)
+    analysis = await service.analyze_document(
+        user_id=current_user.id,
+        org_id=current_user.organization_id,
+        request=request,
+        request_id=request_id
+    )
+    return ResponseEnvelope(data=analysis.model_dump())
