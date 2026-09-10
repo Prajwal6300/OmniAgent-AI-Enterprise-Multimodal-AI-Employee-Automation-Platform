@@ -57,6 +57,7 @@ miniodata/
 ollamadata/
 chromadata/
 media_uploads/
+storage/
 
 # IDE & OS
 .vscode/
