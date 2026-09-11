@@ -103,7 +103,8 @@ class DocumentService:
             metadata_={
                 "original_filename": filename,
                 "mime_type": content_type,
-                "extension": lower_name.split(".")[-1]
+                "extension": lower_name.split(".")[-1],
+                "indexing_status": "NOT_INDEXED"
             }
         )
         created_doc = await self.doc_repo.create(doc)
@@ -162,8 +163,33 @@ class DocumentService:
             "title": result.title,
             "confidence": result.confidence,
             "needs_ocr": result.needs_ocr,
-            "analysis": result.model_dump()
+            "analysis": result.model_dump(),
+            "indexing_status": "NOT_INDEXED"
         }
         await self.doc_repo.update_status(doc.id, final_status, metadata_update)
 
+        # Trigger RAG Ingestion Pipeline upon successful document processing
+        if final_status == "PROCESSED" and result.pages:
+            try:
+                from app.services.rag.ingestion.pipeline import RAGIngestionPipeline
+                pipeline = RAGIngestionPipeline(self.session)
+                pages_data = [p.model_dump() for p in result.pages]
+                await pipeline.index_document(doc, pages=pages_data)
+            except Exception as index_err:
+                logger.error(
+                    "rag_indexing_trigger_failed",
+                    document_id=str(doc.id),
+                    organization_id=str(org_id),
+                    error=str(index_err)
+                )
+
         return result
+
+    async def index_document(self, doc_id: UUID, org_id: UUID) -> int:
+        """
+        Manually triggers RAG indexing for an existing document in this organization.
+        """
+        doc = await self.get_document(doc_id, org_id)
+        from app.services.rag.ingestion.pipeline import RAGIngestionPipeline
+        pipeline = RAGIngestionPipeline(self.session)
+        return await pipeline.index_document(doc)
