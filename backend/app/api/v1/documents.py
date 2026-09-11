@@ -59,3 +59,21 @@ async def get_document(
     service = DocumentService(session)
     doc = await service.get_document(document_id, current_user.organization_id)
     return ResponseEnvelope(data=doc)
+
+
+@router.post("/{document_id}/index", response_model=ResponseEnvelope[dict])
+async def index_document_endpoint(
+    document_id: UUID,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session)
+):
+    """
+    Triggers RAG chunking and pgvector embedding indexing for an uploaded document.
+    """
+    service = DocumentService(session)
+    chunks_count = await service.index_document(document_id, current_user.organization_id)
+    return ResponseEnvelope(data={
+        "document_id": str(document_id),
+        "indexing_status": "INDEXED",
+        "chunks_indexed": chunks_count
+    })
