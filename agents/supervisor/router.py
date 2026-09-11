@@ -229,11 +229,15 @@ def deterministic_classify(message: str) -> SupervisorDecision | None:
             explanation="Structured database metric query detected; routed to Database Agent."
         )
 
-    # 6. Knowledge Search / Policies / Handbook / Guidelines
-    rag_keywords = ["policy", "leave policy", "handbook", "guideline", "procedure", "knowledge base", "vacation rules", "hr policy"]
+    # 6. Knowledge Search / Policies / Handbook / Guidelines / Agreements / Procedures
+    rag_keywords = [
+        "policy", "leave policy", "handbook", "guideline", "procedure", "knowledge base",
+        "vacation rules", "hr policy", "password policy", "vendor agreement", "payment term",
+        "safety requirements", "machine fails", "sop", "standard operating procedure"
+    ]
     if any(k in msg_lower for k in rag_keywords):
         return SupervisorDecision(
-            intent="policy_search",
+            intent="knowledge_search",
             task_type=TaskType.KNOWLEDGE_SEARCH.value,
             capability=map_task_to_capability(TaskType.KNOWLEDGE_SEARCH.value),
             selected_agent=AgentTarget.RAG_AGENT.value,
