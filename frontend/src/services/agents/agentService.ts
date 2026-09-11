@@ -13,6 +13,23 @@ export interface SupervisorDecision {
   explanation: string;
 }
 
+export interface Citation {
+  document_id: string;
+  document_name: string;
+  page_number?: number | null;
+  chunk_id: string;
+  relevance_score?: number | null;
+  section?: string | null;
+}
+
+export interface RAGResponseData {
+  answer: string;
+  grounded: boolean;
+  confidence: number;
+  citations: Citation[];
+  retrieved_chunks: number;
+}
+
 export const agentService = {
   runAgent: async (agentName: string, task: string) => {
     const res = await apiClient.post('/agents/run', { agent_name: agentName, task_description: task });
@@ -24,6 +41,15 @@ export const agentService = {
       message,
       conversation_id: conversationId,
       context: context || {}
+    });
+    return res.data;
+  },
+
+  queryRAG: async (question: string, documentId?: string | null, topK?: number) => {
+    const res = await apiClient.post<{ success: boolean; data: RAGResponseData }>('/agents/rag/query', {
+      question,
+      document_id: documentId || null,
+      top_k: topK || 5
     });
     return res.data;
   }
