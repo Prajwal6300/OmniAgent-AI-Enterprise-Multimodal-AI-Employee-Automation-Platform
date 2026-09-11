@@ -37,8 +37,15 @@ class Settings(BaseSettings):
     DEFAULT_MODEL: str = "gpt-4o"
     OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
+    EMBEDDING_PROVIDER: str = "deterministic"  # "deterministic" | "mock" | "openai"
     EMBEDDING_MODEL: str = "text-embedding-3-large"
     EMBEDDING_DIMENSION: int = 1536
+
+    # RAG Configuration
+    RAG_CHUNK_SIZE: int = 500
+    RAG_CHUNK_OVERLAP: int = 50
+    RAG_TOP_K: int = 5
+    RAG_SIMILARITY_THRESHOLD: float = 0.05
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
