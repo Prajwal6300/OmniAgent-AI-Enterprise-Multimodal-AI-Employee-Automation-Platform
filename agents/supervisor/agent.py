@@ -238,3 +238,34 @@ class SupervisorAgent:
         except Exception as exc:
             raise DocumentProcessingError(f"Document Agent execution failed: {str(exc)}")
 
+    async def run_rag_agent(
+        self,
+        question: str,
+        document_id: str | None = None,
+        user_id: str | None = None,
+        organization_id: str | None = None,
+        conversation_id: str | None = None,
+        top_k: int = 5,
+        request_id: str | None = None,
+        retriever=None
+    ):
+        """
+        Directly delegates execution to the RAG Agent for knowledge search tasks.
+        Returns RAGResponse or raises RAGException.
+        """
+        from agents.rag.agent import RAGAgent
+        from agents.rag.exceptions import RAGException
+        try:
+            rag_agent = RAGAgent(retriever=retriever)
+            return await rag_agent.query(
+                question=question,
+                document_id=document_id,
+                user_id=user_id,
+                organization_id=organization_id or "default_org",
+                conversation_id=conversation_id,
+                top_k=top_k,
+                request_id=request_id
+            )
+        except Exception as exc:
+            raise RAGException(f"RAG Agent execution failed: {str(exc)}")
+
