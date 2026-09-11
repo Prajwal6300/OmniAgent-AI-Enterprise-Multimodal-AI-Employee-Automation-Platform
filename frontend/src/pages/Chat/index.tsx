@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { agentService, SupervisorDecision } from '@/services/agents/agentService';
+import { agentService, Citation, RAGResponseData, SupervisorDecision } from '@/services/agents/agentService';
 import {
   Send,
   Bot,
@@ -14,6 +14,10 @@ import {
   ListOrdered,
   Clock,
   HelpCircle,
+  BookOpen,
+  FileText,
+  Search,
+  Check,
 } from 'lucide-react';
 
 interface AnalysisEntry {
@@ -21,15 +25,18 @@ interface AnalysisEntry {
   userMessage: string;
   timestamp: string;
   loading: boolean;
+  loadingStep?: string;
   decision?: SupervisorDecision;
+  ragResult?: RAGResponseData;
   error?: string;
 }
 
 const SAMPLE_PROMPTS = [
+  'What is the company\'s leave policy?',
+  'What is the payment term mentioned in the vendor agreement?',
+  'What are the safety requirements for this machine?',
   'Summarize this PDF',
   'What is the total sales amount from the database?',
-  'Find information about our leave policy',
-  'Analyze this machine image',
   'Send this report to the manager',
   'Delete the employee record',
 ];
@@ -49,6 +56,7 @@ export default function MultimodalChatPage() {
       userMessage: message,
       timestamp: new Date().toLocaleTimeString(),
       loading: true,
+      loadingStep: 'Analyzing intent with Supervisor Agent...',
     };
 
     setEntries((prev) => [newEntry, ...prev]);
@@ -58,10 +66,39 @@ export default function MultimodalChatPage() {
     try {
       const response = await agentService.analyzeSupervisor(message);
       if (response && response.data) {
+        const decision = response.data;
+        let ragData: RAGResponseData | undefined = undefined;
+
+        // If Supervisor selects RAG Agent, execute knowledge search
+        if (decision.selected_agent === 'rag_agent' || decision.task_type === 'KNOWLEDGE_SEARCH') {
+          setEntries((prev) =>
+            prev.map((item) =>
+              item.id === entryId
+                ? { ...item, decision, loadingStep: 'Searching company knowledge...' }
+                : item
+            )
+          );
+
+          try {
+            const ragRes = await agentService.queryRAG(message);
+            if (ragRes && ragRes.data) {
+              ragData = ragRes.data;
+            }
+          } catch (ragErr: any) {
+            console.warn('RAG Query non-fatal notice:', ragErr);
+          }
+        }
+
         setEntries((prev) =>
           prev.map((item) =>
             item.id === entryId
-              ? { ...item, loading: false, decision: response.data }
+              ? {
+                  ...item,
+                  loading: false,
+                  loadingStep: undefined,
+                  decision,
+                  ragResult: ragData,
+                }
               : item
           )
         );
@@ -75,6 +112,7 @@ export default function MultimodalChatPage() {
             ? {
                 ...item,
                 loading: false,
+                loadingStep: undefined,
                 error: err.response?.data?.error?.message || err.message || 'Failed to communicate with Supervisor Agent.',
               }
             : item
@@ -199,10 +237,12 @@ export default function MultimodalChatPage() {
                 <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
                   <div className="flex items-center gap-2 text-sm text-cyan-400 font-medium animate-pulse">
                     <Bot className="w-4 h-4" />
-                    <span>Understanding request & classifying intent...</span>
+                    <span>{entry.loadingStep || 'Understanding question & analyzing intent...'}</span>
                   </div>
                   <div className="text-xs text-slate-500 pl-6">
-                    Executing LangGraph validation and capability mapping nodes...
+                    {entry.loadingStep?.includes('knowledge')
+                      ? 'Generating query vector embedding and searching pgvector semantic store...'
+                      : 'Executing LangGraph routing and capability determination...'}
                   </div>
                 </div>
               )}
@@ -319,6 +359,75 @@ export default function MultimodalChatPage() {
                         <span className="font-medium text-slate-300">Supervisor Rationale: </span>
                         <span>{entry.decision.explanation}</span>
                       </div>
+                    </div>
+                  )}
+
+                  {/* RAG Agent Grounded Answer & Citations */}
+                  {entry.ragResult && (
+                    <div className="rounded-lg bg-slate-900 border border-cyan-500/30 p-5 space-y-4 shadow-lg shadow-cyan-950/20">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="w-5 h-5 text-cyan-400" />
+                          <h3 className="text-sm font-semibold text-slate-100">
+                            RAG Agent Knowledge Answer
+                          </h3>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {entry.ragResult.grounded ? (
+                            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Grounded in Documents
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              Refusal: Insufficient Info
+                            </span>
+                          )}
+                          <span className="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
+                            {(entry.ragResult.confidence * 100).toFixed(0)}% confidence
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Answer Text */}
+                      <div className="text-sm text-slate-200 leading-relaxed bg-slate-950/60 p-4 rounded-lg border border-slate-800/80">
+                        {entry.ragResult.answer}
+                      </div>
+
+                      {/* Sources & Citations */}
+                      {entry.ragResult.citations && entry.ragResult.citations.length > 0 && (
+                        <div className="space-y-2 pt-1">
+                          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5 text-cyan-400" />
+                            <span>Sources</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {entry.ragResult.citations.map((c, cIdx) => (
+                              <div
+                                key={cIdx}
+                                className="flex items-start gap-2.5 p-3 rounded-lg bg-slate-950 border border-slate-800 hover:border-slate-700 transition-colors"
+                              >
+                                <span className="text-base">📄</span>
+                                <div className="text-xs space-y-0.5 min-w-0">
+                                  <div className="font-semibold text-slate-200 truncate">
+                                    {c.document_name}
+                                  </div>
+                                  <div className="text-slate-400">
+                                    {c.page_number ? `Page ${c.page_number}` : 'Full Document'}
+                                    {c.section ? ` • ${c.section}` : ''}
+                                  </div>
+                                  {c.relevance_score && (
+                                    <div className="text-cyan-400 text-[10px]">
+                                      Match score: {(c.relevance_score * 100).toFixed(0)}%
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
