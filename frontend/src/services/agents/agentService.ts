@@ -30,6 +30,18 @@ export interface RAGResponseData {
   retrieved_chunks: number;
 }
 
+export interface DatabaseResponseData {
+  question: string;
+  summary: string;
+  columns: string[];
+  rows: Record<string, any>[];
+  row_count: number;
+  query_executed: boolean;
+  confidence: number;
+  limited?: boolean;
+  error?: string | null;
+}
+
 export const agentService = {
   runAgent: async (agentName: string, task: string) => {
     const res = await apiClient.post('/agents/run', { agent_name: agentName, task_description: task });
@@ -52,5 +64,14 @@ export const agentService = {
       top_k: topK || 5
     });
     return res.data;
+  },
+
+  queryDatabase: async (question: string, limit?: number) => {
+    const res = await apiClient.post<{ success: boolean; data: DatabaseResponseData }>('/agents/database/query', {
+      question,
+      limit: limit || 50
+    });
+    return res.data;
   }
 };
+
