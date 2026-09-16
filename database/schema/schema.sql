@@ -248,3 +248,88 @@ CREATE TABLE integrations (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     UNIQUE(organization_id, service_name)
 );
+
+-- -----------------------------------------------------------------------------
+-- 9. Enterprise Business Data: Production, Orders, Machines & Vendors
+-- -----------------------------------------------------------------------------
+CREATE TABLE machines (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name VARCHAR(150) NOT NULL,
+    machine_code VARCHAR(50) NOT NULL,
+    department_id UUID REFERENCES departments(id) ON DELETE SET NULL,
+    status VARCHAR(50) DEFAULT 'OPERATIONAL' NOT NULL,
+    failure_count INT DEFAULT 0 NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_machines_org ON machines(organization_id);
+
+CREATE TABLE production_records (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    machine_id UUID REFERENCES machines(id) ON DELETE SET NULL,
+    batch_number VARCHAR(100) NOT NULL,
+    status VARCHAR(50) DEFAULT 'PASSED' NOT NULL,
+    defect_count INT DEFAULT 0 NOT NULL,
+    production_time_hours NUMERIC(10, 2) DEFAULT 0.0 NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_production_records_org ON production_records(organization_id);
+CREATE INDEX IF NOT EXISTS idx_production_records_status ON production_records(organization_id, status);
+
+CREATE TABLE orders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    order_number VARCHAR(100) NOT NULL,
+    customer_name VARCHAR(255) NOT NULL,
+    status VARCHAR(50) DEFAULT 'PENDING' NOT NULL,
+    total_amount NUMERIC(12, 2) DEFAULT 0.0 NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_org ON orders(organization_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(organization_id, status);
+
+CREATE TABLE products (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    sku VARCHAR(100) NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    price NUMERIC(10, 2) DEFAULT 0.0 NOT NULL,
+    usage_count INT DEFAULT 0 NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_products_org ON products(organization_id);
+
+CREATE TABLE vendors (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    contact_email VARCHAR(255),
+    total_purchases NUMERIC(14, 2) DEFAULT 0.0 NOT NULL,
+    rating NUMERIC(3, 2) DEFAULT 5.0 NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_vendors_org ON vendors(organization_id);
+
+CREATE TABLE maintenance_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    machine_id UUID REFERENCES machines(id) ON DELETE SET NULL,
+    title VARCHAR(255) NOT NULL,
+    status VARCHAR(50) DEFAULT 'OPEN' NOT NULL,
+    priority VARCHAR(20) DEFAULT 'MEDIUM' NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_maintenance_requests_org ON maintenance_requests(organization_id);
+
