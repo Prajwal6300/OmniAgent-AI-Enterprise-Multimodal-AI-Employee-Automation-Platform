@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     RAG_TOP_K: int = 5
     RAG_SIMILARITY_THRESHOLD: float = 0.05
 
+    # Database Agent Configuration
+    DATABASE_AGENT_MAX_ROWS: int = 100
+    DATABASE_AGENT_MAX_LIMIT: int = 500
+    DATABASE_AGENT_QUERY_TIMEOUT_SECONDS: int = 10
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()
+
