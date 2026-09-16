@@ -209,10 +209,16 @@ def deterministic_classify(message: str) -> SupervisorDecision | None:
         )
 
     # 5. Database Query / SQL / Aggregations (Read-only queries)
-    db_keywords = ["database", "sql", "sales amount", "query table", "select from", "db query", "total revenue from database"]
+    db_keywords = [
+        "database", "sql", "sales amount", "query table", "select from", "db query", "total revenue from database",
+        "production failure", "production failures", "failed inspection", "failed inspections", "open maintenance request",
+        "pending orders", "pending order", "orders are pending", "top 10 products", "products by usage",
+        "machines had the most failures", "machines by failures", "top 5 machines by failures",
+        "purchase amount by vendor", "average production time", "how many pending orders"
+    ]
     if any(k in msg_lower for k in db_keywords):
         return SupervisorDecision(
-            intent="database_aggregation",
+            intent="database_query",
             task_type=TaskType.DATABASE_QUERY.value,
             capability=map_task_to_capability(TaskType.DATABASE_QUERY.value),
             selected_agent=AgentTarget.DATABASE_AGENT.value,
@@ -221,10 +227,10 @@ def deterministic_classify(message: str) -> SupervisorDecision | None:
             requires_tool=False,
             requires_approval=False,
             task_plan=[
-                "Translate inquiry into read-only SQL query",
-                "Validate query against SQL safety guardrails",
-                "Execute read-only database query",
-                "Format aggregated results"
+                "Analyze natural language question against authorized business schema",
+                "Construct parameterized read-only SQL query plan",
+                "Validate query against SQL safety guardrails and tenant isolation",
+                "Execute read-only query and synthesize grounded summary"
             ],
             explanation="Structured database metric query detected; routed to Database Agent."
         )
