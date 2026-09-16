@@ -134,6 +134,20 @@ The RAG subsystem (`backend/app/services/rag/`) delivers enterprise semantic ret
 
 ---
 
+## Database Agent
+
+The Database Agent (`agents/database/`) delivers secure, natural-language structured business analytics:
+
+- **Approved Schema Registry**: Discovers and exposes only approved business entities (orders, production records, machines, vendors, products) while strictly hiding credentials, secrets, and system tables.
+- **Zero-Trust Guardrails**: AST validation rejects all DDL and non-SELECT operations (`DELETE`, `DROP`, `UPDATE`, `INSERT`, `ALTER`, `TRUNCATE`).
+- **Tenant Isolation**: Mandatory `organization_id` filter injected and verified at the backend security layer.
+- **Safe Parameterization**: All literals and filters are strictly bound to parameters, eliminating SQL injection.
+- **Bounded Resource Limits**: Enforces query timeouts (`DATABASE_AGENT_QUERY_TIMEOUT_SECONDS`) and bounded row limits (`DATABASE_AGENT_MAX_ROWS`).
+- **Grounded Summaries**: Concisely summarizes returned rows without hallucination or fabricated metrics.
+
+---
+
+
 ## Automation
 
 The automation engine (`automation/`) powers headless, event-driven DAG workflows:
