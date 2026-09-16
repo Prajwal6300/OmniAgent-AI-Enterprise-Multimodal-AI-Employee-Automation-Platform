@@ -8,6 +8,7 @@ from app.models.approval import Approval
 from app.models.notification import Notification
 from app.models.audit_log import AuditLog
 from app.models.integration import Integration
+from app.models.business import Machine, ProductionRecord, Order, Product, Vendor, MaintenanceRequest
 
 __all__ = [
     "User", "Organization", "Department",
@@ -16,5 +17,7 @@ __all__ = [
     "Conversation", "Message",
     "AgentRun", "ToolCall",
     "Workflow", "WorkflowRun",
-    "Approval", "Notification", "AuditLog", "Integration"
+    "Approval", "Notification", "AuditLog", "Integration",
+    "Machine", "ProductionRecord", "Order", "Product", "Vendor", "MaintenanceRequest"
 ]
+
