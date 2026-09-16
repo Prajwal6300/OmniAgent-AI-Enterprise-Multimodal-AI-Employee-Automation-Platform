@@ -11,13 +11,16 @@ from app.schemas.agent import (
     SupervisorDecision,
 )
 from app.schemas.common import ResponseEnvelope
+from app.schemas.database import DatabaseQueryRequest, DatabaseResponse
 from app.schemas.document import DocumentAnalysisResponseData, DocumentAnalyzeRequest
 from app.schemas.rag import CitationData, RAGQueryRequest, RAGQueryResponseData
 from app.services.agent_service import AgentService
+from app.services.database_service import DatabaseService
 from app.services.document_service import DocumentService
 from app.services.rag_service import RAGService
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
+
 
 
 @router.post("/run", response_model=ResponseEnvelope[AgentRunRead])
@@ -106,3 +109,26 @@ async def query_rag_agent(
         retrieved_chunks=response.retrieved_chunks
     )
     return ResponseEnvelope(data=data)
+
+
+@router.post("/database/query", response_model=ResponseEnvelope[DatabaseResponse])
+async def query_database_agent(
+    request: DatabaseQueryRequest,
+    http_req: Request,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session)
+):
+    """
+    Executes Database Agent natural-language queries against authorized business data.
+    Enforces multi-tenant isolation, approved schema allowlists, and parameterized read-only execution.
+    """
+    request_id = getattr(http_req.state, "request_id", None)
+    service = DatabaseService(session)
+    response = await service.query(
+        user_id=current_user.id,
+        org_id=current_user.organization_id,
+        request=request,
+        request_id=request_id
+    )
+    return ResponseEnvelope(data=response)
+
