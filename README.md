@@ -147,6 +147,18 @@ The Database Agent (`agents/database/`) delivers secure, natural-language struct
 
 ---
 
+## Vision Agent
+
+The Vision Agent (`agents/vision/`) delivers secure, multi-tenant visual inspection, OCR transcription, object detection, and spatial grounding:
+
+- **Untrusted Input Isolation**: All visual data, extracted OCR text, and machine labels are treated as untrusted observations, isolated in XML-delimited envelopes resisting prompt injection.
+- **Zero Hallucination Policy**: Real component reporting with no fabricated bounding boxes or simulated OCR. Missing host engines report honest `UNAVAILABLE` statuses.
+- **LangGraph Routing**: Atomic StateGraph with specialized fast-paths for OCR-only and Detection-only queries, plus deep multimodal coordination for visual inspection.
+- **Safe Preprocessing**: Magic byte verification (`JPEG`, `PNG`, `WEBP`), EXIF auto-orientation transpose, 16MP decompression bomb defense, and aspect-ratio-preserving Lanczos downsampling.
+- **Multi-Tenant Storage**: Tenant-isolated directories (`storage/images/{org_id}/...`) with path traversal guards.
+- **Grounded Visual Evidence**: Verified bounding box citations (`[ymin, xmin, ymax, xmax]`) and OCR region mapping.
+
+---
 
 ## Automation
 
