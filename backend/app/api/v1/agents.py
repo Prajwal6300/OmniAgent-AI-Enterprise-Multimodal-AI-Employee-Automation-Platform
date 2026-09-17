@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Request
+from uuid import UUID
+from fastapi import APIRouter, Depends, File, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.auth import get_current_user
@@ -14,10 +15,16 @@ from app.schemas.common import ResponseEnvelope
 from app.schemas.database import DatabaseQueryRequest, DatabaseResponse
 from app.schemas.document import DocumentAnalysisResponseData, DocumentAnalyzeRequest
 from app.schemas.rag import CitationData, RAGQueryRequest, RAGQueryResponseData
+from app.schemas.vision import (
+    VisionAnalysisResponseData,
+    VisionAnalyzeRequest,
+    VisionUploadResponse,
+)
 from app.services.agent_service import AgentService
 from app.services.database_service import DatabaseService
 from app.services.document_service import DocumentService
 from app.services.rag_service import RAGService
+from app.services.vision_service import VisionService
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
 
@@ -131,4 +138,70 @@ async def query_database_agent(
         request_id=request_id
     )
     return ResponseEnvelope(data=response)
+
+
+@router.post("/vision/upload", response_model=ResponseEnvelope[VisionUploadResponse], status_code=status.HTTP_201_CREATED)
+async def upload_vision_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session)
+):
+    """
+    Uploads and validates an image artifact (JPEG, PNG, WEBP) under the authenticated organization.
+    Enforces format signatures, decompression safeguards, and tenant isolation.
+    """
+    service = VisionService(session)
+    uploaded = await service.upload_image(
+        user_id=current_user.id,
+        org_id=current_user.organization_id,
+        file=file
+    )
+    return ResponseEnvelope(data=uploaded)
+
+
+@router.post("/vision/analyze", response_model=ResponseEnvelope[VisionAnalysisResponseData])
+async def analyze_vision_image(
+    request: VisionAnalyzeRequest,
+    http_req: Request,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session)
+):
+    """
+    Executes Vision Agent inspection, OCR extraction, object detection, and visual reasoning.
+    Validates tenant organization access and operates upon previously stored image artifacts.
+    """
+    request_id = getattr(http_req.state, "request_id", None)
+    service = VisionService(session)
+    analysis = await service.analyze_image(
+        user_id=current_user.id,
+        org_id=current_user.organization_id,
+        request=request,
+        request_id=request_id
+    )
+    return ResponseEnvelope(data=analysis.model_dump())
+
+
+@router.get("/vision/images", response_model=ResponseEnvelope[list[VisionUploadResponse]])
+async def list_vision_images(
+    skip: int = 0,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session)
+):
+    """Lists all image artifacts belonging to the authenticated tenant."""
+    service = VisionService(session)
+    images = await service.list_images(current_user.organization_id, skip=skip, limit=limit)
+    return ResponseEnvelope(data=images)
+
+
+@router.get("/vision/images/{image_id}", response_model=ResponseEnvelope[VisionUploadResponse])
+async def get_vision_image(
+    image_id: UUID,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session)
+):
+    """Retrieves image artifact metadata with strict tenant boundary enforcement."""
+    service = VisionService(session)
+    img = await service.get_image(image_id, current_user.organization_id)
+    return ResponseEnvelope(data=img)
 
