@@ -52,6 +52,17 @@ class Settings(BaseSettings):
     DATABASE_AGENT_MAX_LIMIT: int = 500
     DATABASE_AGENT_QUERY_TIMEOUT_SECONDS: int = 10
 
+    # Vision Agent Configuration
+    VISION_MAX_FILE_SIZE_MB: int = 10
+    VISION_MAX_WIDTH: int = 4096
+    VISION_MAX_HEIGHT: int = 4096
+    VISION_MAX_IMAGE_PIXELS: int = 16777216
+    VISION_OCR_ENABLED: bool = True
+    VISION_OBJECT_DETECTION_ENABLED: bool = True
+    VISION_PROVIDER: str = "mock"
+    VISION_MODEL: str = "gpt-4o"
+    VISION_STORAGE_DIR: str = "storage/images"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()
