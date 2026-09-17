@@ -188,7 +188,13 @@ def deterministic_classify(message: str) -> SupervisorDecision | None:
         )
 
     # 4. Image Analysis / Machine Visual / Screenshot / Inspection
-    img_keywords = ["image", "picture", "photo", "screenshot", "diagram", "defect", "machine image", "blueprint"]
+    img_keywords = [
+        "image", "picture", "photo", "screenshot", "diagram", "defect",
+        "machine image", "blueprint", "visual inspection", "machine inspection",
+        "visible damage", "damaged components", "serial number from this",
+        "extract the serial number", "objects are visible", "components are visible",
+        "components are present", "safety issues visible", "visible condition"
+    ]
     if any(k in msg_lower for k in img_keywords):
         return SupervisorDecision(
             intent="visual_inspection",
