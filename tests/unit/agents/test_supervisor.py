@@ -167,3 +167,23 @@ async def test_task_plan_does_not_expose_hidden_cot(supervisor):
         assert not step.lower().startswith("let's think")
         assert not step.lower().startswith("thinking:")
         assert not step.lower().startswith("<thought>")
+
+
+@pytest.mark.asyncio
+async def test_supervisor_routes_enterprise_vision_queries(supervisor):
+    """Verify that Supervisor Agent accurately routes real-world industrial vision tasks to vision_agent."""
+    vision_queries = [
+        "What objects are visible in this image?",
+        "Analyze this machine inspection image.",
+        "Is there visible damage?",
+        "Read the text from this image.",
+        "What components are present?",
+        "Identify safety issues visible in this image.",
+        "Extract the serial number from this image.",
+    ]
+    for q in vision_queries:
+        decision = await supervisor.analyze(q)
+        assert decision.task_type == TaskType.IMAGE_ANALYSIS.value, f"Failed for query: {q}"
+        assert decision.selected_agent == AgentTarget.VISION_AGENT.value, f"Failed for query: {q}"
+        assert decision.confidence >= 0.90
+
