@@ -160,6 +160,20 @@ The Vision Agent (`agents/vision/`) delivers secure, multi-tenant visual inspect
 
 ---
 
+## Reasoning Agent
+
+The Reasoning Agent (`agents/reasoning/`) coordinates multi-source, multi-step grounded enterprise intelligence:
+
+- **Cognitive Orchestration Layer**: Synthesizes verified outputs from specialized downstream agents (`document_agent`, `rag_agent`, `database_agent`, `vision_agent`) without performing direct mutations.
+- **Zero Chain-of-Thought Exposure**: Returns clean, professional structured reasoning summaries with evidence considered, objective conflicts, and grounded conclusions.
+- **Strict Security Allowlists & Anti-Recursion**: Enforces an authorized specialist agent allowlist, prevents self-recursion, and guards against unbounded execution loops (`REASONING_MAX_AGENT_DEPTH=3`, `REASONING_MAX_AGENT_CALLS=5`).
+- **Normalized Evidence & Conflict Detection**: Standardizes multi-modal findings into verifiable evidence records and detects state discrepancies (e.g. database telemetry RUNNING vs physical image STOPPED) without subjective guesswork.
+- **Prompt Injection Defense**: Treats all document paragraphs, database fields, OCR inscriptions, and agent responses as passive untrusted data.
+- **Mandatory Tenant Isolation**: Injects authenticated `organization_id` and `user_id` context into all downstream agent calls, with contextual artifact lookup and zero cross-tenant leakage.
+- **Action Boundaries**: Performs read-only analysis; informs users that external mutations and dispatches require the upcoming Action Agent.
+
+---
+
 ## Automation
 
 The automation engine (`automation/`) powers headless, event-driven DAG workflows:
