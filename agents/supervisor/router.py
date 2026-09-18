@@ -128,7 +128,48 @@ def deterministic_classify(message: str) -> SupervisorDecision | None:
             explanation="Request requires report compilation and external dispatch tool execution."
         )
 
-    # 3. Document Analysis / PDF / Invoice / Contract / Policy / Manual / Report
+    # 3. Multi-Source / Cross-Modal Reasoning / Trend / Root Cause (Reasoning Agent)
+    has_img = any(k in msg_lower for k in ["image", "picture", "photo", "screenshot", "diagram", "inspection image"])
+    has_db = any(k in msg_lower for k in [
+        "maintenance record", "maintenance records", "maintenance history", "failures", "failure records",
+        "failure record", "database", "orders", "production failures", "sales records"
+    ])
+    has_doc = any(k in msg_lower for k in ["manual", "handbook", "sop", "policy", "documentation", "invoice", "purchase order"])
+
+    is_reasoning_task = (
+        (has_img and has_db) or
+        (has_doc and has_db) or
+        ("troubleshooting procedure" in msg_lower and ("fail" in msg_lower or "manual" in msg_lower)) or
+        ("troubleshooting step" in msg_lower and ("fail" in msg_lower or "manual" in msg_lower)) or
+        re.search(r"\b(why might|most common causes|most likely reason|root cause)\b", msg_lower) or
+        ("compare" in msg_lower and any(term in msg_lower for term in ["maintenance", "records", "history", "failures", "manual", "invoice with", "po"])) or
+        ("production failures" in msg_lower and "summarize the most common causes" in msg_lower)
+    )
+
+    if is_reasoning_task and not (
+        "delete" in msg_lower or
+        "send this report" in msg_lower
+    ):
+        return SupervisorDecision(
+            intent="multi_source_reasoning" if (has_img and has_db) else "analytical_reasoning",
+            task_type=TaskType.DATA_ANALYSIS.value,
+            capability=map_task_to_capability(TaskType.DATA_ANALYSIS.value),
+            selected_agent=AgentTarget.REASONING_AGENT.value,
+            priority="medium",
+            confidence=0.96,
+            requires_tool=False,
+            requires_approval=False,
+            task_plan=[
+                "Identify required information sources and target specialist agents",
+                "Dispatch coordinated queries to specialist agents",
+                "Collect and normalize structured factual evidence",
+                "Evaluate cross-source consistency and detect conflicts",
+                "Synthesize grounded analytical conclusion without chain-of-thought exposure"
+            ],
+            explanation="Complex multi-source or multi-step analytical reasoning task routed to Reasoning Agent."
+        )
+
+    # 4. Document Analysis / PDF / Invoice / Contract / Policy / Manual / Report
     doc_keywords = [
         "pdf", "invoice", "document", "docx", "contract", "receipt",
         "purchase order", "po-", "agreement", "manual", "machine manual", "report"
