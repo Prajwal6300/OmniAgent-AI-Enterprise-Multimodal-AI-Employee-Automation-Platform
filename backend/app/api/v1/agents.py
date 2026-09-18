@@ -1,4 +1,5 @@
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, File, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +16,10 @@ from app.schemas.common import ResponseEnvelope
 from app.schemas.database import DatabaseQueryRequest, DatabaseResponse
 from app.schemas.document import DocumentAnalysisResponseData, DocumentAnalyzeRequest
 from app.schemas.rag import CitationData, RAGQueryRequest, RAGQueryResponseData
+from app.schemas.reasoning import (
+    ReasoningAnalyzeRequest,
+    ReasoningAnalyzeResponseData,
+)
 from app.schemas.vision import (
     VisionAnalysisResponseData,
     VisionAnalyzeRequest,
@@ -24,17 +29,17 @@ from app.services.agent_service import AgentService
 from app.services.database_service import DatabaseService
 from app.services.document_service import DocumentService
 from app.services.rag_service import RAGService
+from app.services.reasoning_service import ReasoningService
 from app.services.vision_service import VisionService
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
-
 
 
 @router.post("/run", response_model=ResponseEnvelope[AgentRunRead])
 async def run_agent(
     request: AgentRunRequest,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Executes a specialist agent run (legacy / direct run)."""
     service = AgentService(session)
@@ -47,7 +52,7 @@ async def analyze_supervisor_request(
     request: SupervisorAnalyzeRequest,
     http_req: Request,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Central cognitive routing analysis by Supervisor Agent.
@@ -60,7 +65,7 @@ async def analyze_supervisor_request(
         user_id=current_user.id,
         org_id=current_user.organization_id,
         request=request,
-        request_id=request_id
+        request_id=request_id,
     )
     return ResponseEnvelope(data=decision)
 
@@ -70,7 +75,7 @@ async def analyze_document_request(
     request: DocumentAnalyzeRequest,
     http_req: Request,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Executes Document Agent deep parsing, classification, summarization, and structured extraction.
@@ -82,7 +87,7 @@ async def analyze_document_request(
         user_id=current_user.id,
         org_id=current_user.organization_id,
         request=request,
-        request_id=request_id
+        request_id=request_id,
     )
     return ResponseEnvelope(data=analysis.model_dump())
 
@@ -92,7 +97,7 @@ async def query_rag_agent(
     request: RAGQueryRequest,
     http_req: Request,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Executes RAG Agent semantic retrieval and grounded answer generation.
@@ -106,14 +111,14 @@ async def query_rag_agent(
         question=request.question,
         document_id=request.document_id,
         top_k=request.top_k,
-        request_id=request_id
+        request_id=request_id,
     )
     data = RAGQueryResponseData(
         answer=response.answer,
         grounded=response.grounded,
         confidence=response.confidence,
         citations=[CitationData(**c.model_dump()) for c in response.citations],
-        retrieved_chunks=response.retrieved_chunks
+        retrieved_chunks=response.retrieved_chunks,
     )
     return ResponseEnvelope(data=data)
 
@@ -123,7 +128,7 @@ async def query_database_agent(
     request: DatabaseQueryRequest,
     http_req: Request,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Executes Database Agent natural-language queries against authorized business data.
@@ -135,16 +140,20 @@ async def query_database_agent(
         user_id=current_user.id,
         org_id=current_user.organization_id,
         request=request,
-        request_id=request_id
+        request_id=request_id,
     )
     return ResponseEnvelope(data=response)
 
 
-@router.post("/vision/upload", response_model=ResponseEnvelope[VisionUploadResponse], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/vision/upload",
+    response_model=ResponseEnvelope[VisionUploadResponse],
+    status_code=status.HTTP_201_CREATED,
+)
 async def upload_vision_image(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Uploads and validates an image artifact (JPEG, PNG, WEBP) under the authenticated organization.
@@ -152,9 +161,7 @@ async def upload_vision_image(
     """
     service = VisionService(session)
     uploaded = await service.upload_image(
-        user_id=current_user.id,
-        org_id=current_user.organization_id,
-        file=file
+        user_id=current_user.id, org_id=current_user.organization_id, file=file
     )
     return ResponseEnvelope(data=uploaded)
 
@@ -164,7 +171,7 @@ async def analyze_vision_image(
     request: VisionAnalyzeRequest,
     http_req: Request,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ):
     """
     Executes Vision Agent inspection, OCR extraction, object detection, and visual reasoning.
@@ -176,7 +183,7 @@ async def analyze_vision_image(
         user_id=current_user.id,
         org_id=current_user.organization_id,
         request=request,
-        request_id=request_id
+        request_id=request_id,
     )
     return ResponseEnvelope(data=analysis.model_dump())
 
@@ -186,7 +193,7 @@ async def list_vision_images(
     skip: int = 0,
     limit: int = 50,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Lists all image artifacts belonging to the authenticated tenant."""
     service = VisionService(session)
@@ -198,10 +205,32 @@ async def list_vision_images(
 async def get_vision_image(
     image_id: UUID,
     current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_db_session)
+    session: AsyncSession = Depends(get_db_session),
 ):
     """Retrieves image artifact metadata with strict tenant boundary enforcement."""
     service = VisionService(session)
     img = await service.get_image(image_id, current_user.organization_id)
     return ResponseEnvelope(data=img)
 
+
+@router.post("/reasoning/analyze", response_model=ResponseEnvelope[ReasoningAnalyzeResponseData])
+async def analyze_reasoning_request(
+    request: ReasoningAnalyzeRequest,
+    http_req: Request,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """
+    Executes Reasoning Agent multi-step, multi-source grounded analysis.
+    Orchestrates specialized downstream agents across databases, documents, knowledge bases,
+    and visual inspection with strict tenant isolation and no chain-of-thought exposure.
+    """
+    request_id = getattr(http_req.state, "request_id", None)
+    service = ReasoningService(session)
+    response = await service.analyze(
+        user_id=current_user.id,
+        org_id=current_user.organization_id,
+        request=request,
+        request_id=request_id,
+    )
+    return ResponseEnvelope(data=response.model_dump())
