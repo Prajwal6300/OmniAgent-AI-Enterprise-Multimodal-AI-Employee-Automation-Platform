@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { agentService, Citation, DatabaseResponseData, RAGResponseData, SupervisorDecision } from '@/services/agents/agentService';
+import {
+  agentService,
+  Citation,
+  DatabaseResponseData,
+  RAGResponseData,
+  ReasoningResponseData,
+  SupervisorDecision,
+} from '@/services/agents/agentService';
 import {
   Send,
   Bot,
@@ -20,6 +27,10 @@ import {
   Check,
   Database,
   Table as TableIcon,
+  Scale,
+  Layers,
+  AlertCircle,
+  Eye,
 } from 'lucide-react';
 
 interface AnalysisEntry {
@@ -31,18 +42,20 @@ interface AnalysisEntry {
   decision?: SupervisorDecision;
   ragResult?: RAGResponseData;
   databaseResult?: DatabaseResponseData;
+  reasoningResult?: ReasoningResponseData;
   error?: string;
 }
 
 const SAMPLE_PROMPTS = [
+  'Compare this inspection image with the maintenance records',
+  'Read the maintenance manual and check troubleshooting procedure',
+  'Analyze this month\'s production failures and summarize the most common causes',
+  'Why might this machine be failing repeatedly?',
   'How many pending orders do we have?',
   'Show failed inspections',
-  'What are the top 5 machines by failures?',
-  'What is the average production time?',
   'What is the company\'s leave policy?',
   'Summarize this PDF',
   'Send this report to the manager',
-  'Delete the employee record',
 ];
 
 export default function MultimodalChatPage() {
@@ -73,6 +86,27 @@ export default function MultimodalChatPage() {
         const decision = response.data;
         let ragData: RAGResponseData | undefined = undefined;
         let dbData: DatabaseResponseData | undefined = undefined;
+        let reasoningData: ReasoningResponseData | undefined = undefined;
+
+        // If Supervisor selects Reasoning Agent, execute multi-source analysis
+        if (decision.selected_agent === 'reasoning_agent' || decision.task_type === 'DATA_ANALYSIS') {
+          setEntries((prev) =>
+            prev.map((item) =>
+              item.id === entryId
+                ? { ...item, decision, loadingStep: 'Analyzing multiple sources…' }
+                : item
+            )
+          );
+
+          try {
+            const reasoningRes = await agentService.analyzeReasoning(message);
+            if (reasoningRes && reasoningRes.data) {
+              reasoningData = reasoningRes.data;
+            }
+          } catch (reasoningErr: any) {
+            console.warn('Reasoning Agent error:', reasoningErr);
+          }
+        }
 
         // If Supervisor selects RAG Agent, execute knowledge search
         if (decision.selected_agent === 'rag_agent' || decision.task_type === 'KNOWLEDGE_SEARCH') {
@@ -124,6 +158,7 @@ export default function MultimodalChatPage() {
                   decision,
                   ragResult: ragData,
                   databaseResult: dbData,
+                  reasoningResult: reasoningData,
                 }
               : item
           )
@@ -536,6 +571,134 @@ export default function MultimodalChatPage() {
                       </div>
                     );
                   })()}
+
+                  {/* Reasoning Agent Multi-Source Analysis Result */}
+                  {entry.reasoningResult && (
+                    <div className="rounded-lg bg-slate-900 border border-indigo-500/30 p-5 space-y-4 shadow-lg shadow-indigo-950/20">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div className="flex items-center gap-2">
+                          <Scale className="w-5 h-5 text-indigo-400" />
+                          <div>
+                            <h3 className="text-sm font-semibold text-slate-100">
+                              Reasoning Agent Grounded Synthesis
+                            </h3>
+                            <span className="text-[11px] text-slate-400 font-mono">
+                              Task: {entry.reasoningResult.task_type}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Grounded: {(entry.reasoningResult.confidence * 100).toFixed(0)}%
+                          </span>
+                          {entry.reasoningResult.latency_ms && (
+                            <span className="text-xs text-slate-500 font-mono">
+                              {entry.reasoningResult.latency_ms} ms
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Conclusion Box */}
+                      <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+                        <div className="text-[11px] font-semibold text-indigo-400 uppercase tracking-wider">
+                          Structured Conclusion
+                        </div>
+                        <div className="text-sm text-slate-200 leading-relaxed whitespace-pre-line font-medium">
+                          {entry.reasoningResult.answer}
+                        </div>
+                      </div>
+
+                      {/* Contributing Specialist Agents */}
+                      {entry.reasoningResult.contributing_agents && entry.reasoningResult.contributing_agents.length > 0 && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-slate-500 font-medium">Contributing Agents:</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {entry.reasoningResult.contributing_agents.map((ag, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[11px] border border-slate-700"
+                              >
+                                {ag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Contradictions / Conflicts Detected */}
+                      {entry.reasoningResult.conflicts && entry.reasoningResult.conflicts.length > 0 && (
+                        <div className="p-4 rounded-lg bg-amber-950/30 border border-amber-800/40 space-y-2">
+                          <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
+                            <AlertCircle className="w-4 h-4 text-amber-400" />
+                            <span>Conflicting Evidence Identified ({entry.reasoningResult.conflicts.length})</span>
+                          </div>
+                          <div className="space-y-2 text-xs">
+                            {entry.reasoningResult.conflicts.map((c, cIdx) => (
+                              <div key={cIdx} className="p-2.5 rounded bg-amber-950/40 border border-amber-900/40 space-y-1">
+                                <div className="flex items-center justify-between text-[11px] text-amber-400">
+                                  <span>{c.source_a} vs {c.source_b}</span>
+                                  <span className="font-bold uppercase tracking-wider">Severity: {c.severity}</span>
+                                </div>
+                                <div className="text-slate-300">• Source A: {c.claim_a}</div>
+                                <div className="text-slate-300">• Source B: {c.claim_b}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Normalized Evidence Considered Section */}
+                      {entry.reasoningResult.evidence && entry.reasoningResult.evidence.length > 0 && (
+                        <div className="space-y-2 pt-1">
+                          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                            <span>Evidence Considered ({entry.reasoningResult.evidence.length} items)</span>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                            {entry.reasoningResult.evidence.map((ev, evIdx) => (
+                              <div
+                                key={evIdx}
+                                className="p-3 rounded-lg bg-slate-950/80 border border-slate-800 text-xs space-y-1"
+                              >
+                                <div className="flex items-center justify-between text-[11px]">
+                                  <span className="font-mono text-indigo-400 font-semibold uppercase">
+                                    [{ev.source_type}] {ev.source_name || ''}
+                                  </span>
+                                  {ev.confidence !== undefined && ev.confidence !== null && (
+                                    <span className="text-slate-500">
+                                      {(ev.confidence * 100).toFixed(0)}% conf
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-slate-300 line-clamp-3 leading-relaxed">
+                                  {ev.content}
+                                </p>
+                                {ev.page_number && (
+                                  <div className="text-[10px] text-slate-500">Page: {ev.page_number}</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Missing Information Notice */}
+                      {entry.reasoningResult.missing_information && entry.reasoningResult.missing_information.length > 0 && (
+                        <div className="p-3 rounded-lg bg-slate-950 border border-slate-800/80 text-xs space-y-1">
+                          <span className="font-semibold text-slate-400 block text-[11px] uppercase tracking-wider">
+                            Information Gaps / Unresolved:
+                          </span>
+                          <ul className="list-disc list-inside text-slate-400 space-y-0.5 pl-1">
+                            {entry.reasoningResult.missing_information.map((m, mIdx) => (
+                              <li key={mIdx}>{m}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </Card>
