@@ -63,6 +63,13 @@ class Settings(BaseSettings):
     VISION_MODEL: str = "gpt-4o"
     VISION_STORAGE_DIR: str = "storage/images"
 
+    # Reasoning Agent Configuration
+    REASONING_MAX_AGENT_CALLS: int = 5
+    REASONING_MAX_AGENT_DEPTH: int = 3
+    REASONING_AGENT_TIMEOUT_SECONDS: int = 30
+    REASONING_PROVIDER: str = "hybrid"
+    REASONING_MODEL: str = "gpt-4o"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()
