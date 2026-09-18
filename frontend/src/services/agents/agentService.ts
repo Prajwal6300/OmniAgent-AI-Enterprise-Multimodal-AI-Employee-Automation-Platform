@@ -42,6 +42,38 @@ export interface DatabaseResponseData {
   error?: string | null;
 }
 
+export interface ReasoningEvidence {
+  source_type: string;
+  source_id?: string | null;
+  source_name?: string | null;
+  content: string;
+  page_number?: number | null;
+  confidence?: number | null;
+  metadata?: Record<string, any>;
+}
+
+export interface ReasoningConflict {
+  source_a: string;
+  source_b: string;
+  claim_a: string;
+  claim_b: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | string;
+}
+
+export interface ReasoningResponseData {
+  answer: string;
+  task_type: string;
+  grounded: boolean;
+  confidence: number;
+  evidence: ReasoningEvidence[];
+  conflicts: ReasoningConflict[];
+  missing_information: string[];
+  contributing_agents: string[];
+  execution_plan: Array<Record<string, any>>;
+  requires_approval: boolean;
+  latency_ms?: number | null;
+}
+
 export const agentService = {
   runAgent: async (agentName: string, task: string) => {
     const res = await apiClient.post('/agents/run', { agent_name: agentName, task_description: task });
@@ -70,6 +102,23 @@ export const agentService = {
     const res = await apiClient.post<{ success: boolean; data: DatabaseResponseData }>('/agents/database/query', {
       question,
       limit: limit || 50
+    });
+    return res.data;
+  },
+
+  analyzeReasoning: async (
+    question: string,
+    conversationId?: string,
+    imageId?: string,
+    documentId?: string,
+    context?: Record<string, any>
+  ) => {
+    const res = await apiClient.post<{ success: boolean; data: ReasoningResponseData }>('/agents/reasoning/analyze', {
+      question,
+      conversation_id: conversationId,
+      image_id: imageId,
+      document_id: documentId,
+      context: context || {}
     });
     return res.data;
   }
