@@ -170,7 +170,22 @@ The Reasoning Agent (`agents/reasoning/`) coordinates multi-source, multi-step g
 - **Normalized Evidence & Conflict Detection**: Standardizes multi-modal findings into verifiable evidence records and detects state discrepancies (e.g. database telemetry RUNNING vs physical image STOPPED) without subjective guesswork.
 - **Prompt Injection Defense**: Treats all document paragraphs, database fields, OCR inscriptions, and agent responses as passive untrusted data.
 - **Mandatory Tenant Isolation**: Injects authenticated `organization_id` and `user_id` context into all downstream agent calls, with contextual artifact lookup and zero cross-tenant leakage.
-- **Action Boundaries**: Performs read-only analysis; informs users that external mutations and dispatches require the upcoming Action Agent.
+- **Action Boundaries**: Performs read-only analysis; delegates external mutations and dispatches to the Action Agent via structured action requests.
+
+---
+
+## Action Agent
+
+The Action Agent (`agents/action/`) executes authorized enterprise side-effects with strict safety controls:
+
+- **Deny-by-Default Security Model**: Rejects any unregistered, unknown, ambiguous, or unauthorized action requests immediately.
+- **Explicit Action Registry**: Allows only strictly registered actions (`send_email`, `send_notification`, `create_ticket`, `create_report`) with dedicated Pydantic input schemas.
+- **Backend-Enforced Approval Gates**: MEDIUM and HIGH-risk actions pause execution until human authorization is granted, unaffected by LLM prompts.
+- **Cryptographic Payload Binding**: Calculates a SHA-256 hash binding approvals to the exact payload, preventing post-approval parameter tampering.
+- **At-Most-Once Idempotency**: Deduplicates repeated requests using client `idempotency_key` tokens to prevent accidental duplicate side-effects.
+- **Independent Side-Effect Verification**: Confirms delivery references, database entities, or storage artifacts before reporting execution success.
+- **Tamper-Evident Audit Logging**: Emits SHA-256 chained audit entries for all execution and approval state transitions.
+- **Human-in-the-Loop Frontend Center**: Full UI for reviewing pending action proposals, approving/rejecting with comments, and viewing complete action history.
 
 ---
 
