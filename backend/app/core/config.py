@@ -70,6 +70,19 @@ class Settings(BaseSettings):
     REASONING_PROVIDER: str = "hybrid"
     REASONING_MODEL: str = "gpt-4o"
 
+    # Action Agent Configuration
+    ACTION_APPROVAL_EXPIRATION_MINUTES: int = 30
+    ACTION_MAX_PAYLOAD_SIZE_KB: int = 256
+    ACTION_EXECUTION_TIMEOUT_SECONDS: int = 30
+
+    # Email Integration Configuration
+    EMAIL_PROVIDER: str = "smtp"
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 1025
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = "noreply@omniagent.ai"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()
