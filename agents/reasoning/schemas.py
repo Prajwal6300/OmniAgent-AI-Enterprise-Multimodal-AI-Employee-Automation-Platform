@@ -171,6 +171,20 @@ class ReconciliationResult(BaseModel):
     risk_score: float = 0.0
 
 
+class ActionRequest(BaseModel):
+    """
+    Structured action proposal emitted by the Reasoning Agent.
+    Must be independently validated and authorized by the Action Agent before execution.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    action_type: str = Field(..., description="Action type identifier, e.g. create_ticket")
+    input: dict[str, Any] = Field(..., description="Action parameters dictionary")
+    reason: str = Field(..., description="Analytical justification for requesting action")
+    source_request_id: str = Field(..., description="Originating reasoning request UUID")
+
+
 class ReasoningResponse(BaseModel):
     """
     Comprehensive structured response produced by the Reasoning Agent.
@@ -219,6 +233,9 @@ class ReasoningResponse(BaseModel):
     )
     reconciliation: ReconciliationResult | None = Field(
         default=None, description="Optional legacy reconciliation result"
+    )
+    requested_action: ActionRequest | None = Field(
+        default=None, description="Optional structured action requested by reasoning conclusions"
     )
 
     @field_validator("confidence")
