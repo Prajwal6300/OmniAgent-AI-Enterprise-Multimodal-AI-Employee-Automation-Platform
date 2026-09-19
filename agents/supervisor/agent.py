@@ -269,3 +269,48 @@ class SupervisorAgent:
         except Exception as exc:
             raise RAGException(f"RAG Agent execution failed: {str(exc)}")
 
+    async def run_action_agent(
+        self,
+        action_type: str,
+        input_data: dict[str, Any],
+        user_id: str | None = None,
+        organization_id: str | None = None,
+        user_role: str = "Operator",
+        user_permissions: list[str] | None = None,
+        reason: str = "",
+        idempotency_key: str | None = None,
+        approval_id: str | None = None,
+        request_id: str | None = None,
+        conversation_id: str | None = None,
+        session: Any = None,
+    ):
+        """
+        Directly delegates execution to the Action Agent for enterprise action tasks.
+        Returns ActionResult or raises ActionError.
+        """
+        from agents.action.agent import ActionAgent
+        from agents.action.exceptions import ActionError
+        from agents.action.schemas import ActionContext, ActionRequest
+
+        try:
+            action_agent = ActionAgent(session=session)
+            context = ActionContext(
+                user_id=user_id or "anonymous",
+                organization_id=organization_id or "default_org",
+                user_role=user_role,
+                user_permissions=user_permissions or [],
+                request_id=request_id,
+                conversation_id=conversation_id,
+            )
+            request = ActionRequest(
+                action_type=action_type,
+                input=input_data,
+                reason=reason,
+                idempotency_key=idempotency_key,
+                approval_id=approval_id,
+            )
+            return await action_agent.execute(request, context, session=session)
+        except Exception as exc:
+            raise ActionError(f"Action Agent execution failed: {str(exc)}", action_type=action_type)
+
+
