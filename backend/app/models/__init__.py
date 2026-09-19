@@ -9,6 +9,7 @@ from app.models.notification import Notification
 from app.models.audit_log import AuditLog
 from app.models.integration import Integration
 from app.models.business import Machine, ProductionRecord, Order, Product, Vendor, MaintenanceRequest
+from app.models.action import ActionRecord, ActionApproval, ActionAuditLog
 
 __all__ = [
     "User", "Organization", "Department",
@@ -18,6 +19,7 @@ __all__ = [
     "AgentRun", "ToolCall",
     "Workflow", "WorkflowRun",
     "Approval", "Notification", "AuditLog", "Integration",
-    "Machine", "ProductionRecord", "Order", "Product", "Vendor", "MaintenanceRequest"
+    "Machine", "ProductionRecord", "Order", "Product", "Vendor", "MaintenanceRequest",
+    "ActionRecord", "ActionApproval", "ActionAuditLog",
 ]
 
