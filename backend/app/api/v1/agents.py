@@ -6,6 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db_session
 from app.models.user import User
+from app.schemas.action import (
+    ActionApprovalRead,
+    ActionApproveRequest,
+    ActionExecuteRequest,
+    ActionExecuteResponse,
+    ActionHistoryItem,
+    ActionRejectRequest,
+)
 from app.schemas.agent import (
     AgentRunRead,
     AgentRunRequest,
@@ -25,6 +33,7 @@ from app.schemas.vision import (
     VisionAnalyzeRequest,
     VisionUploadResponse,
 )
+from app.services.action_service import ActionService
 from app.services.agent_service import AgentService
 from app.services.database_service import DatabaseService
 from app.services.document_service import DocumentService
@@ -234,3 +243,124 @@ async def analyze_reasoning_request(
         request_id=request_id,
     )
     return ResponseEnvelope(data=response.model_dump())
+
+
+@router.post("/action/execute", response_model=ResponseEnvelope[ActionExecuteResponse])
+async def execute_action_request(
+    request: ActionExecuteRequest,
+    http_req: Request,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """
+    Executes an authorized enterprise action or initiates a human-in-the-loop approval request.
+    Strictly tenant-isolated; verifies parameters, idempotency, and risk classification.
+    """
+    request_id = getattr(http_req.state, "request_id", None)
+    client_ip = http_req.client.host if http_req.client else None
+    user_role = current_user.role.name if current_user.role else "Operator"
+    user_perms = [p.name for p in current_user.role.permissions] if (current_user.role and current_user.role.permissions) else []
+
+    service = ActionService(session)
+    result = await service.execute_action(
+        user_id=current_user.id,
+        org_id=current_user.organization_id,
+        user_role=user_role,
+        user_perms=user_perms,
+        request=request,
+        request_id=request_id,
+        ip_address=client_ip,
+    )
+    return ResponseEnvelope(data=result)
+
+
+@router.get("/action/approvals", response_model=ResponseEnvelope[list[ActionApprovalRead]])
+async def list_action_approvals(
+    status: str | None = None,
+    skip: int = 0,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """
+    Lists pending, approved, or rejected action approvals strictly within the user's organization.
+    """
+    service = ActionService(session)
+    approvals = await service.list_approvals(
+        org_id=current_user.organization_id,
+        status_filter=status,
+        skip=skip,
+        limit=limit,
+    )
+    return ResponseEnvelope(data=[ActionApprovalRead.model_validate(a) for a in approvals])
+
+
+@router.post("/action/approvals/{approval_id}/approve", response_model=ResponseEnvelope[ActionApprovalRead])
+async def approve_action_request(
+    approval_id: UUID,
+    request: ActionApproveRequest = ActionApproveRequest(),
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """
+    Approves a pending action request and immediately dispatches execution.
+    Requires appropriate approval permissions.
+    """
+    user_role = current_user.role.name if current_user.role else "Operator"
+    user_perms = [p.name for p in current_user.role.permissions] if (current_user.role and current_user.role.permissions) else []
+
+    service = ActionService(session)
+    approval, _ = await service.approve_action(
+        approval_id=approval_id,
+        user_id=current_user.id,
+        org_id=current_user.organization_id,
+        user_role=user_role,
+        user_perms=user_perms,
+        reason=request.reason,
+    )
+    return ResponseEnvelope(data=ActionApprovalRead.model_validate(approval))
+
+
+@router.post("/action/approvals/{approval_id}/reject", response_model=ResponseEnvelope[ActionApprovalRead])
+async def reject_action_request(
+    approval_id: UUID,
+    request: ActionRejectRequest = ActionRejectRequest(),
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """
+    Rejects a pending action approval request.
+    Requires appropriate approval permissions.
+    """
+    user_role = current_user.role.name if current_user.role else "Operator"
+    user_perms = [p.name for p in current_user.role.permissions] if (current_user.role and current_user.role.permissions) else []
+
+    service = ActionService(session)
+    approval = await service.reject_action(
+        approval_id=approval_id,
+        user_id=current_user.id,
+        org_id=current_user.organization_id,
+        user_role=user_role,
+        user_perms=user_perms,
+        reason=request.reason,
+    )
+    return ResponseEnvelope(data=ActionApprovalRead.model_validate(approval))
+
+
+@router.get("/action/history", response_model=ResponseEnvelope[list[ActionHistoryItem]])
+async def get_action_history(
+    skip: int = 0,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """
+    Retrieves execution history of enterprise actions scoped to the organization.
+    """
+    service = ActionService(session)
+    history = await service.get_history(
+        org_id=current_user.organization_id,
+        skip=skip,
+        limit=limit,
+    )
+    return ResponseEnvelope(data=[ActionHistoryItem.model_validate(h) for h in history])
