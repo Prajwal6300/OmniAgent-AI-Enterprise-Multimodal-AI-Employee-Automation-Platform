@@ -1,1 +1,127 @@
+"""
+OmniAgent AI — Action Agent
+Specialized agent for executing authorized enterprise side-effects with
+risk assessment, human-in-the-loop approvals, tenant isolation, idempotency,
+and immutable audit logging.
+"""
 
+from agents.action.action_policy import ActionPolicy
+from agents.action.agent import ActionAgent
+from agents.action.approval import (
+    classify_action_risk,
+    compute_approval_signature,
+    compute_payload_hash,
+    create_approval_expiry,
+    is_approval_expired,
+    requires_approval,
+    validate_approval_binding,
+)
+from agents.action.exceptions import (
+    ActionApprovalRequiredError,
+    ActionError,
+    ActionExecutionError,
+    ActionExpiredError,
+    ActionIdempotencyConflictError,
+    ActionNotConfiguredError,
+    ActionNotFoundError,
+    ActionPermissionDeniedError,
+    ActionSecurityError,
+    ActionValidationError,
+    ActionVerificationError,
+)
+from agents.action.executor import (
+    ActionExecutor,
+    BaseEmailProvider,
+    BaseNotificationProvider,
+    BaseReportProvider,
+    BaseTicketProvider,
+    DatabaseNotificationProvider,
+    DatabaseTicketProvider,
+    FakeEmailProvider,
+    FakeNotificationProvider,
+    FakeReportProvider,
+    FakeTicketProvider,
+    SMTPEmailProvider,
+    StorageReportProvider,
+)
+from agents.action.idempotency import IdempotencyManager, idempotency_manager
+from agents.action.registry import (
+    ACTION_REGISTRY,
+    ActionDefinition,
+    ActionRegistry,
+    action_registry,
+)
+from agents.action.schemas import (
+    ActionApprovalRead,
+    ActionContext,
+    ActionProposal,
+    ActionRequest,
+    ActionResult,
+    ActionStatus,
+    ActionType,
+    ApprovalStatus,
+    CreateReportInput,
+    CreateTicketInput,
+    RiskLevel,
+    SendEmailInput,
+    SendNotificationInput,
+)
+from agents.action.state import ActionState
+from agents.action.verifier import ActionVerifier
+
+__all__ = [
+    "ACTION_REGISTRY",
+    "ActionAgent",
+    "ActionApprovalRead",
+    "ActionApprovalRequiredError",
+    "ActionContext",
+    "ActionDefinition",
+    "ActionError",
+    "ActionExecutionError",
+    "ActionExecutor",
+    "ActionExpiredError",
+    "ActionIdempotencyConflictError",
+    "ActionNotConfiguredError",
+    "ActionNotFoundError",
+    "ActionPermissionDeniedError",
+    "ActionPolicy",
+    "ActionProposal",
+    "ActionRegistry",
+    "ActionRequest",
+    "ActionResult",
+    "ActionSecurityError",
+    "ActionState",
+    "ActionStatus",
+    "ActionType",
+    "ActionValidationError",
+    "ActionVerificationError",
+    "ActionVerifier",
+    "ApprovalStatus",
+    "BaseEmailProvider",
+    "BaseNotificationProvider",
+    "BaseReportProvider",
+    "BaseTicketProvider",
+    "CreateReportInput",
+    "CreateTicketInput",
+    "DatabaseNotificationProvider",
+    "DatabaseTicketProvider",
+    "FakeEmailProvider",
+    "FakeNotificationProvider",
+    "FakeReportProvider",
+    "FakeTicketProvider",
+    "IdempotencyManager",
+    "RiskLevel",
+    "SMTPEmailProvider",
+    "SendEmailInput",
+    "SendNotificationInput",
+    "StorageReportProvider",
+    "action_registry",
+    "classify_action_risk",
+    "compute_approval_signature",
+    "compute_payload_hash",
+    "create_approval_expiry",
+    "idempotency_manager",
+    "is_approval_expired",
+    "requires_approval",
+    "validate_approval_binding",
+]
