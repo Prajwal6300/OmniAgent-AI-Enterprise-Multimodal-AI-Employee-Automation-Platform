@@ -13,6 +13,7 @@ TASK_TYPE_TO_AGENT: dict[str, str] = {
     TaskType.EMAIL.value: AgentTarget.ACTION_AGENT.value,
     TaskType.WORKFLOW.value: AgentTarget.ACTION_AGENT.value,
     TaskType.AUTOMATION.value: AgentTarget.ACTION_AGENT.value,
+    TaskType.ACTION_REQUEST.value: AgentTarget.ACTION_AGENT.value,
     TaskType.GENERAL_QUERY.value: AgentTarget.SUPERVISOR.value,
     TaskType.UNKNOWN.value: AgentTarget.SUPERVISOR.value,
 }
@@ -27,6 +28,7 @@ TASK_TYPE_TO_CAPABILITY: dict[str, str] = {
     TaskType.EMAIL.value: "email_communication",
     TaskType.WORKFLOW.value: "workflow_orchestration",
     TaskType.AUTOMATION.value: "task_automation",
+    TaskType.ACTION_REQUEST.value: "action_execution",
     TaskType.GENERAL_QUERY.value: "general_assistance",
     TaskType.UNKNOWN.value: "unknown",
 }
@@ -126,6 +128,50 @@ def deterministic_classify(message: str) -> SupervisorDecision | None:
                 "Confirm delivery status"
             ],
             explanation="Request requires report compilation and external dispatch tool execution."
+        )
+
+    # 2b. Ticket Action (e.g. "Create a maintenance ticket for machine M-102")
+    ticket_pattern = r"\b(create|open|submit|raise)\b.*\b(ticket|maintenance request|work order)\b"
+    if re.search(ticket_pattern, msg_lower) or "maintenance ticket" in msg_lower or "create ticket" in msg_lower:
+        return SupervisorDecision(
+            intent="create_ticket",
+            task_type=TaskType.ACTION_REQUEST.value,
+            capability=map_task_to_capability(TaskType.ACTION_REQUEST.value),
+            selected_agent=AgentTarget.ACTION_AGENT.value,
+            priority="medium",
+            confidence=0.95,
+            requires_tool=True,
+            requires_approval=True,
+            task_plan=[
+                "Validate ticket parameters and machine identifier",
+                "Require explicit human authorization for ticket submission",
+                "Dispatch ticket creation to maintenance system",
+                "Verify ticket ID persistence",
+                "Record immutable audit log",
+            ],
+            explanation="Ticket creation request detected; routed to Action Agent requiring human approval.",
+        )
+
+    # 2c. Notification Action (e.g. "Notify the production team about this issue")
+    notify_pattern = r"\b(notify|alert|broadcast)\b.*\b(team|production|manager|operator|user|staff)\b"
+    if re.search(notify_pattern, msg_lower) or "send notification" in msg_lower:
+        return SupervisorDecision(
+            intent="send_notification",
+            task_type=TaskType.ACTION_REQUEST.value,
+            capability=map_task_to_capability(TaskType.ACTION_REQUEST.value),
+            selected_agent=AgentTarget.ACTION_AGENT.value,
+            priority="low",
+            confidence=0.95,
+            requires_tool=True,
+            requires_approval=False,
+            task_plan=[
+                "Identify target recipient or operational group",
+                "Construct notification payload with context",
+                "Dispatch in-app notification via action service",
+                "Confirm notification record creation",
+                "Log action event",
+            ],
+            explanation="Notification dispatch request detected; routed to Action Agent.",
         )
 
     # 3. Multi-Source / Cross-Modal Reasoning / Trend / Root Cause (Reasoning Agent)
