@@ -433,17 +433,17 @@ The services will be accessible at:
 
 ## Testing
 
-Run the comprehensive test suite:
+Run the comprehensive enterprise test suite (317 passing tests):
 
 ```bash
-# Run all unit and integration tests
-pytest tests/ -v
+# Run all unit, security, integration, and e2e tests
+python -m pytest tests/unit/ tests/security/ tests/integration/ tests/e2e/ -v
 
-# Run security and prompt injection tests
-pytest tests/security/ -v
+# Run dedicated security & prompt injection suite
+python -m pytest tests/security/ -v
 
-# Run agent evaluation benchmarks
-pytest tests/evaluation/ -v
+# Run orchestration and automation engine tests
+python -m pytest tests/unit/orchestration/ tests/unit/automation/ tests/integration/api/test_orchestration_api.py -v
 ```
 
 ---
@@ -502,7 +502,11 @@ This utility validates database connectivity, pgvector extensions, Redis cache r
 - [x] Hierarchical LangGraph Supervisor architecture
 - [x] Multimodal parsing pipelines (PDF, Images, Audio, Video, CSV)
 - [x] Controlled tools layer with RBAC and risk evaluation
-- [x] Human-in-the-loop approval state machine
+- [x] Human-in-the-loop approval state machine & cryptographic payload binding
+- [x] Day 8: Full Orchestration Layer (`backend/app/orchestration/`) connecting 7 specialist agents
+- [x] Day 8: Production Automation Workflow Engine (`automation/`) with condition evaluation & pause/resume
+- [x] Day 8: Unified Chat API (`POST /api/v1/chat`) & Enterprise Workflows REST APIs
+- [x] Day 8: Zero-Trust Security, tenant isolation, and sanitized execution event recorder
 - [ ] Enterprise SSO (SAML 2.0 / Okta / Azure AD)
 - [ ] Multi-region active-active pgvector replication
 - [ ] On-premise air-gapped LLM inference support (vLLM / Ollama)
