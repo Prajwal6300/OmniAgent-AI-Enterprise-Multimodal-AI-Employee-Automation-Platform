@@ -1,8 +1,3 @@
-import { apiClient } from '../api/client';
+import { workflowApi } from '../workflowApi';
 
-export const workflowService = {
-  listWorkflows: async () => {
-    const res = await apiClient.get('/workflows');
-    return res.data;
-  }
-};
+export const workflowService = workflowApi;
