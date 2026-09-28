@@ -44,7 +44,6 @@ export interface DocumentAnalysisData {
   execution_time_ms?: number;
 }
 
-
 export interface Approval {
   id: string;
   action_type: string;
@@ -137,3 +136,151 @@ export interface VisionAnalysisData {
   execution_time_ms?: number;
 }
 
+// =============================================================================
+// Orchestration & Unified AI Chat Types
+// =============================================================================
+
+export interface EvidenceItem {
+  source_type: string;
+  source_id?: string;
+  source_name?: string;
+  content: string;
+  page_number?: number;
+  confidence?: number;
+  metadata?: Record<string, any>;
+}
+
+export interface CitationItem {
+  document_id?: string;
+  document_name?: string;
+  page_number?: number;
+  section?: string;
+  relevance_score?: number;
+}
+
+export interface ExecutionStepItem {
+  agent: string;
+  action: string;
+  status: 'STARTED' | 'COMPLETED' | 'FAILED' | 'PAUSED';
+  timestamp: string;
+  duration_ms?: number;
+  output_summary?: string;
+}
+
+export interface ApprovalDetail {
+  approval_id: string;
+  action_type: string;
+  risk_level: string;
+  reason: string;
+  payload_summary: string;
+  input_payload: Record<string, any>;
+  expires_at?: string;
+  created_at?: string;
+}
+
+export interface ActionDetail {
+  action_id: string;
+  action_type: string;
+  status: string;
+  success: boolean;
+  verified: boolean;
+  external_reference?: string;
+  message?: string;
+  data?: Record<string, any>;
+}
+
+export interface UnifiedChatResponse {
+  request_id: string;
+  conversation_id: string;
+  status: 'COMPLETED' | 'WAITING_FOR_APPROVAL' | 'PARTIAL_SUCCESS' | 'FAILED' | 'CANCELLED';
+  answer: string;
+  confidence: number;
+  grounded: boolean;
+  citations: CitationItem[];
+  evidence: EvidenceItem[];
+  agents_used: string[];
+  execution_steps: ExecutionStepItem[];
+  action?: ActionDetail | null;
+  approval?: ApprovalDetail | null;
+  error?: string | null;
+}
+
+export interface AttachmentInput {
+  type: 'image' | 'document' | 'file';
+  id?: string;
+  filename?: string;
+  mime_type?: string;
+  content_b64?: string;
+  url?: string;
+}
+
+export interface UnifiedChatRequest {
+  message: string;
+  conversation_id?: string;
+  attachments?: AttachmentInput[];
+  context?: Record<string, any>;
+}
+
+// =============================================================================
+// Workflow Automation Types
+// =============================================================================
+
+export interface WorkflowStep {
+  type: 'agent' | 'condition' | 'approval' | 'action';
+  agent?: string;
+  prompt?: string;
+  field?: string;
+  operator?: string;
+  value?: any;
+  required?: boolean;
+  action?: string;
+  input?: Record<string, any>;
+}
+
+export interface WorkflowDefinition {
+  name?: string;
+  trigger: {
+    type: 'MANUAL' | 'EVENT' | 'SCHEDULE' | 'WEBHOOK' | 'FILE_UPLOAD';
+    config?: Record<string, any>;
+  };
+  steps: WorkflowStep[];
+}
+
+export interface Workflow {
+  id: string;
+  organization_id: string;
+  name: string;
+  description?: string;
+  trigger_type: string;
+  trigger_config: Record<string, any>;
+  graph_definition: WorkflowDefinition;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StepRunResult {
+  step_index: number;
+  step_type: string;
+  status: 'COMPLETED' | 'FAILED' | 'SKIPPED' | 'PAUSED';
+  name?: string;
+  output?: any;
+  duration_ms?: number;
+  error?: string;
+}
+
+export interface WorkflowRun {
+  id: string;
+  workflow_id: string;
+  organization_id: string;
+  status: 'PENDING' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  current_step?: string;
+  input_payload: Record<string, any>;
+  output_payload?: {
+    steps?: StepRunResult[];
+    context?: Record<string, any>;
+  };
+  started_at: string;
+  finished_at?: string;
+  error_details?: string;
+}
