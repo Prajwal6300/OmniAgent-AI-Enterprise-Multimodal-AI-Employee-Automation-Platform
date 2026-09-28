@@ -67,4 +67,19 @@ export const approvalService = {
     });
     return res.data?.data;
   },
+
+  resumeOrchestration: async (
+    requestId: string,
+    approvalId: string,
+    decision: 'APPROVED' | 'REJECTED' = 'APPROVED',
+    reason?: string
+  ) => {
+    const res = await apiClient.post(`/orchestration/${requestId}/resume`, {
+      approval_id: approvalId,
+      decision,
+      reason,
+    });
+    return res.data?.data;
+  },
 };
+
