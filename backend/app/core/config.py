@@ -83,6 +83,19 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM_EMAIL: str = "noreply@omniagent.ai"
 
+    # Orchestration Configuration
+    ORCHESTRATION_MAX_STEPS: int = 20
+    ORCHESTRATION_MAX_AGENT_CALLS: int = 10
+    ORCHESTRATION_MAX_EXECUTION_SECONDS: int = 120
+    ORCHESTRATION_MAX_RETRIES: int = 2
+
+    # Workflow Automation Configuration
+    WORKFLOW_MAX_STEPS: int = 30
+    WORKFLOW_MAX_EXECUTION_SECONDS: int = 300
+
+    # Approval Configuration
+    APPROVAL_EXPIRATION_MINUTES: int = 30
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()
