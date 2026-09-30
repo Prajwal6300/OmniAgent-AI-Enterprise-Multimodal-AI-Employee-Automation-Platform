@@ -20,6 +20,14 @@ Unlike conversational chatbots that produce passive text responses, OmniAgent AI
 
 ---
 
+## Complete Technical Documentation
+
+For the single source-of-truth, exhaustive 95-section technical guide covering complete system architecture, all 49 API endpoints, all 27 database models, specialist agent internals, LangGraph orchestration, security guardrails, and cloud deployment workflows, see:
+
+👉 [**md/OMNIAGENT_AI_COMPLETE_DOCUMENTATION.md**](md/OMNIAGENT_AI_COMPLETE_DOCUMENTATION.md)
+
+---
+
 ## Why OmniAgent AI?
 
 Modern enterprise knowledge and operations are fragmented across unstructured formats (PDFs, emails, voicemail recordings, diagrams) and structured silos (relational databases, ERPs, ticketing tools). Existing point solutions suffer from:
