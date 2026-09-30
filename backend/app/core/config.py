@@ -10,8 +10,10 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "default-insecure-secret-key-override-in-env"
     ALLOWED_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
 
-    # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/omniagent_db"
+    # Database - MUST be set via DATABASE_URL environment variable
+    # Local Docker: postgresql+asyncpg://USER:PASSWORD@host:port/database
+    # Production Supabase: postgres://USER:PASSWORD@host:port/database?sslmode=require
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
