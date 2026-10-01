@@ -1,4 +1,4 @@
-from backend.app.services.rag.retrieval.reranking import Reranker
+from app.services.rag.retrieval.reranking import Reranker
 
 
 def test_reranker_evaluation():

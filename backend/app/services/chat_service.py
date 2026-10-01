@@ -4,6 +4,7 @@ Coordinates conversational interactions, multi-agent orchestration invocation,
 chat history persistence, citations, and human approvals.
 """
 
+from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -173,3 +174,50 @@ class ChatService:
             approval=approval_obj,
             error=orch_state.get("error"),
         )
+
+    async def stream_chat(
+        self,
+        user_id: UUID,
+        org_id: UUID,
+        payload: UnifiedChatRequest,
+        request_id: str | None = None,
+        http_req: Any = None,
+    ):
+        """Streams unified chat progression, tokens, citations, and approvals as SSE events."""
+        import asyncio
+        import json
+
+        req_id = request_id or str(uuid4())
+        yield f"event: start\ndata: {json.dumps({'request_id': req_id, 'event': 'start'})}\n\n"
+
+        if http_req and await http_req.is_disconnected():
+            return
+
+        yield f"event: status\ndata: {json.dumps({'agent': 'supervisor', 'status': 'Routing query to specialized agents'})}\n\n"
+
+        response = await self.unified_chat(
+            user_id=user_id,
+            org_id=org_id,
+            payload=payload,
+            request_id=req_id,
+        )
+
+        if http_req and await http_req.is_disconnected():
+            return
+
+        # Stream answer tokens
+        words = response.answer.split(" ")
+        for i, word in enumerate(words):
+            if http_req and await http_req.is_disconnected():
+                return
+            delta = word if i == 0 else " " + word
+            yield f"event: token\ndata: {json.dumps({'delta': delta})}\n\n"
+            await asyncio.sleep(0.01)
+
+        if response.citations:
+            yield f"event: citations\ndata: {json.dumps({'citations': [c.model_dump() for c in response.citations]})}\n\n"
+
+        if response.approval:
+            yield f"event: approval_required\ndata: {json.dumps({'approval': response.approval.model_dump()})}\n\n"
+
+        yield f"event: done\ndata: {json.dumps({'response': response.model_dump()})}\n\n"

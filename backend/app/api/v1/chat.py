@@ -39,6 +39,56 @@ async def chat_endpoint(
     return ResponseEnvelope(data=response)
 
 
+@router.post("/stream")
+async def chat_stream_endpoint(
+    payload: UnifiedChatRequest,
+    http_req: Request,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """SSE event streaming endpoint yielding agent events, citations, and tokens."""
+    from fastapi.responses import StreamingResponse
+
+    request_id = getattr(http_req.state, "request_id", None)
+    service = ChatService(session)
+    return StreamingResponse(
+        service.stream_chat(
+            user_id=current_user.id,
+            org_id=current_user.organization_id,
+            payload=payload,
+            request_id=request_id,
+            http_req=http_req,
+        ),
+        media_type="text/event-stream",
+    )
+
+
+@router.get("/stream")
+async def chat_stream_get_endpoint(
+    query: str,
+    http_req: Request,
+    conversation_id: UUID | None = None,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """GET SSE event streaming endpoint for EventSource clients."""
+    from fastapi.responses import StreamingResponse
+
+    payload = UnifiedChatRequest(message=query, conversation_id=str(conversation_id) if conversation_id else None)
+    request_id = getattr(http_req.state, "request_id", None)
+    service = ChatService(session)
+    return StreamingResponse(
+        service.stream_chat(
+            user_id=current_user.id,
+            org_id=current_user.organization_id,
+            payload=payload,
+            request_id=request_id,
+            http_req=http_req,
+        ),
+        media_type="text/event-stream",
+    )
+
+
 @router.post("/conversations/{conversation_id}/messages", response_model=ResponseEnvelope[MessageRead])
 async def post_message(
     conversation_id: UUID,

@@ -14,6 +14,7 @@ class VectorSearch:
         self,
         org_id: UUID,
         query_embedding: list[float],
+        query_text: str = "",
         top_k: int = 5,
         search_mode: str = "dense",
     ) -> list[DocumentChunk]:
@@ -26,7 +27,7 @@ class VectorSearch:
             return await self._dense_search(org_id, query_embedding, top_k)
 
         if search_mode == "hybrid":
-            return await self._hybrid_search(org_id, query_embedding, query_text="", top_k=top_k)
+            return await self._hybrid_search(org_id, query_embedding, query_text=query_text, top_k=top_k)
 
         return await self._dense_search(org_id, query_embedding, top_k)
 

@@ -13,9 +13,13 @@ class HybridSearch:
 
     async def search(self, org_id: UUID, query_text: str, query_embedding: list[float], top_k: int = 5) -> list:
         """Search with reranking: retrieve top 20, rerank to top_k."""
-        # Step 1: Retrieve top 20 from dense vector search
+        # Step 1: Retrieve top 20 from hybrid search (dense pgvector + sparse tsvector fused with RRF k=60)
         retrieved_chunks = await self.vector_search.search(
-            org_id, query_embedding, top_k=20
+            org_id,
+            query_embedding,
+            query_text=query_text,
+            top_k=20,
+            search_mode="hybrid",
         )
 
         if not retrieved_chunks:

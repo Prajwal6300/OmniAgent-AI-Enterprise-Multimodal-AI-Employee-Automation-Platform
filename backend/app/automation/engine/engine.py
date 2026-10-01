@@ -8,10 +8,14 @@ import time
 from datetime import UTC, datetime
 from typing import Any
 
+import structlog
+
 from app.automation.engine.executor import StepExecutor
 from app.automation.engine.state import WorkflowRunState
 from app.automation.limits import WORKFLOW_MAX_EXECUTION_SECONDS, WORKFLOW_MAX_STEPS
 from app.automation.validator import validate_workflow_definition
+
+logger = structlog.get_logger(__name__)
 
 
 class WorkflowEngine:
@@ -83,12 +87,14 @@ class WorkflowEngine:
             if result.status == "PAUSED":
                 run_state.status = "PAUSED"
                 # Execution paused at this step for human approval
+                await self._persist_run_state(run_state)
                 return run_state
 
             if result.status == "FAILED":
                 run_state.status = "FAILED"
                 run_state.error = result.error or f"Step {idx + 1} ({result.name}) failed."
                 run_state.completed_at = datetime.now(UTC)
+                await self._persist_run_state(run_state)
                 return run_state
 
             # If condition skipped, we continue or branch
@@ -97,7 +103,30 @@ class WorkflowEngine:
 
         run_state.status = "COMPLETED"
         run_state.completed_at = datetime.now(UTC)
+        await self._persist_run_state(run_state)
         return run_state
+
+    async def _persist_run_state(self, run_state: WorkflowRunState) -> None:
+        """Persists durable workflow execution state into PostgreSQL if session is active."""
+        if not self.session:
+            return
+        try:
+            from uuid import UUID
+
+            from app.models.workflow import WorkflowRun
+
+            run_id = UUID(str(run_state.run_id))
+            record = await self.session.get(WorkflowRun, run_id)
+            if record:
+                record.status = run_state.status
+                record.current_step = str(run_state.current_step)
+                record.output_payload = run_state.context
+                record.error_details = run_state.error
+                if run_state.completed_at:
+                    record.finished_at = run_state.completed_at
+                await self.session.flush()
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("failed_persisting_workflow_run_state", run_id=run_state.run_id, error=str(exc))
 
     async def resume_run(
         self,
