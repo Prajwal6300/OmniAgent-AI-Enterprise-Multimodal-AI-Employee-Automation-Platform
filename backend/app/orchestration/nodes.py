@@ -582,11 +582,9 @@ async def audit_node(state: OrchestrationState) -> dict[str, Any]:
     session = state.get("session")
     if session:
         try:
-            import hashlib
-            import json
             from uuid import UUID
 
-            from app.models.audit_log import AuditLog
+            from app.services.audit_service import record_audit_log
 
             org_id = UUID(state["organization_id"])
             user_id = UUID(state["user_id"]) if state.get("user_id") and state["user_id"] != "anonymous" else None
@@ -597,20 +595,15 @@ async def audit_node(state: OrchestrationState) -> dict[str, Any]:
                 "step_count": state.get("step_count"),
                 "agent_call_count": state.get("agent_call_count"),
             }
-            raw = f"{org_id}:{user_id}:ORCHESTRATION_EXECUTION:{state['request_id']}:{json.dumps(details, sort_keys=True)}"
-            entry_hash = hashlib.sha256(raw.encode()).hexdigest()
-
-            entry = AuditLog(
+            await record_audit_log(
+                session=session,
                 organization_id=org_id,
                 user_id=user_id,
                 event_type="ORCHESTRATION_EXECUTION",
                 resource_type="orchestration_request",
                 resource_id=state["request_id"],
                 details=details,
-                entry_hash=entry_hash,
             )
-            session.add(entry)
-            await session.flush()
         except Exception as exc:  # noqa: BLE001
             logger.warning("failed_persisting_audit_log_entry", error=str(exc))
 

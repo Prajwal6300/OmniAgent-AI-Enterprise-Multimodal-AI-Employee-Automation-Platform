@@ -23,5 +23,7 @@ class Approval(Base):
     decided_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     decision_reason = Column(Text, nullable=True)
     decided_at = Column(DateTime(timezone=True), nullable=True)
+    second_decided_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    second_decided_at = Column(DateTime(timezone=True), nullable=True)
     signature_hmac = Column(String(128), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)

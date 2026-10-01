@@ -5,8 +5,6 @@ validation, normalization, authorization, risk classification, approval gates,
 execution, verification, immutable audit logging, and response generation.
 """
 
-import hashlib
-import json
 import time
 import uuid
 from datetime import UTC, datetime
@@ -529,16 +527,12 @@ async def write_audit_log_node(state: ActionState, session: Any = None) -> dict[
         "latency_ms": state.get("latency_ms"),
     }
 
-    # Safe payload metadata only (never log secrets)
-    payload_str = json.dumps(audit_details, sort_keys=True)
-    entry_raw = f"{org_id}:{user_id}:{event_type}:{state.get('action_id')}:{payload_str}"
-    entry_hash = hashlib.sha256(entry_raw.encode("utf-8")).hexdigest()
-
     if session is not None:
         try:
-            from app.models.action import ActionAuditLog
-            audit_entry = ActionAuditLog(
-                id=uuid.UUID(audit_id),
+            from app.services.audit_service import record_action_audit_log
+
+            await record_action_audit_log(
+                session=session,
                 organization_id=uuid.UUID(str(org_id)),
                 user_id=uuid.UUID(str(user_id)) if user_id else None,
                 action_id=str(state.get("action_id") or "unknown"),
@@ -546,14 +540,11 @@ async def write_audit_log_node(state: ActionState, session: Any = None) -> dict[
                 event_type=event_type,
                 status=exec_status,
                 risk_level=risk_level,
+                details=audit_details,
                 request_id=state.get("request_id"),
                 approval_id=state.get("approval_id"),
                 external_reference=str(ext_ref) if ext_ref else None,
-                details=audit_details,
-                entry_hash=entry_hash,
             )
-            session.add(audit_entry)
-            await session.flush()
         except Exception as exc:  # noqa: BLE001
             logger.error("failed_writing_action_audit_log", error=str(exc))
 

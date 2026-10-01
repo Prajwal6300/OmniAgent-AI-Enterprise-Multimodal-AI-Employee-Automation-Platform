@@ -20,5 +20,8 @@ class ApprovalRead(BaseModel):
     status: str
     requested_by: UUID | None = None
     decided_by: UUID | None = None
+    decided_at: datetime | None = None
+    second_decided_by: UUID | None = None
+    second_decided_at: datetime | None = None
     decision_reason: str | None = None
     created_at: datetime

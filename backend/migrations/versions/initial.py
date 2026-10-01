@@ -279,11 +279,14 @@ def upgrade():
         sa.Column('decided_by', sa.UUID(), nullable=True),
         sa.Column('decision_reason', sa.Text(), nullable=True),
         sa.Column('decided_at', sa.DateTime(timezone=True), nullable=True),
+        sa.Column('second_decided_by', sa.UUID(), nullable=True),
+        sa.Column('second_decided_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('signature_hmac', sa.String(length=128), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(['requested_by'], ['users.id'], ondelete='SET NULL'),
         sa.ForeignKeyConstraint(['agent_run_id'], ['agent_runs.id'], ondelete='SET NULL'),
         sa.ForeignKeyConstraint(['decided_by'], ['users.id'], ondelete='SET NULL'),
+        sa.ForeignKeyConstraint(['second_decided_by'], ['users.id'], ondelete='SET NULL'),
         sa.ForeignKeyConstraint(['workflow_run_id'], ['workflow_runs.id'], ondelete='SET NULL'),
         sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], ondelete='CASCADE'),
     )
@@ -302,6 +305,8 @@ def upgrade():
         sa.Column('payload_hash', sa.String(length=64), nullable=False),
         sa.Column('approved_by', sa.UUID(), nullable=True),
         sa.Column('approved_at', sa.DateTime(timezone=True), nullable=True),
+        sa.Column('second_approved_by', sa.UUID(), nullable=True),
+        sa.Column('second_approved_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('rejected_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
         sa.Column('decision_reason', sa.Text(), nullable=True),
@@ -311,6 +316,7 @@ def upgrade():
         sa.ForeignKeyConstraint(['action_id'], ['actions.id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['approved_by'], ['users.id'], ondelete='SET NULL'),
+        sa.ForeignKeyConstraint(['second_approved_by'], ['users.id'], ondelete='SET NULL'),
         sa.ForeignKeyConstraint(['requested_by'], ['users.id'], ondelete='SET NULL'),
     )
 

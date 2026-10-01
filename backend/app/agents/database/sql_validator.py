@@ -20,18 +20,23 @@ class SQLValidator:
 
     def extract_tables(self, sql: str) -> list[str]:
         """
-        Extracts table names referenced in FROM and JOIN clauses.
+        Extracts table names referenced in the SQL statement using sqlglot AST parsing.
         """
-        clean_sql = re.sub(r"--.*$", "", sql, flags=re.MULTILINE)
-        clean_sql = re.sub(r"/\*.*?\*/", "", clean_sql, flags=re.DOTALL)
+        try:
+            import sqlglot
+            from sqlglot import exp
 
-        # Regex to extract identifiers following FROM or JOIN
-        table_pattern = r"\b(?:FROM|JOIN)\s+([a-zA-Z_][a-zA-Z0-9_]*)"
-        matches = re.findall(table_pattern, clean_sql, re.IGNORECASE)
-        # Normalize and filter out common SQL keywords
-        exclude = {"select", "where", "group", "order", "limit", "as"}
-        tables = [m.lower().strip() for m in matches if m.lower() not in exclude]
-        return list(dict.fromkeys(tables))  # Deduplicate preserving order
+            ast = sqlglot.parse_one(sql, read="postgres")
+            tables = [t.name.lower() for t in ast.find_all(exp.Table) if t.name]
+            return list(dict.fromkeys(tables))
+        except Exception:  # noqa: BLE001
+            clean_sql = re.sub(r"--.*$", "", sql, flags=re.MULTILINE)
+            clean_sql = re.sub(r"/\*.*?\*/", "", clean_sql, flags=re.DOTALL)
+            table_pattern = r"\b(?:FROM|JOIN)\s+([a-zA-Z_][a-zA-Z0-9_]*)"
+            matches = re.findall(table_pattern, clean_sql, re.IGNORECASE)
+            exclude = {"select", "where", "group", "order", "limit", "as"}
+            tables = [m.lower().strip() for m in matches if m.lower() not in exclude]
+            return list(dict.fromkeys(tables))
 
     def validate(
         self,

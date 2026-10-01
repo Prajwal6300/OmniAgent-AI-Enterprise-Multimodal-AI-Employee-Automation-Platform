@@ -1,65 +1,223 @@
-import hashlib
-import json
-from uuid import UUID
+"""
+OmniAgent AI — Cryptographic Audit Logging Service
+Implements tamper-evident, SHA-256 prev_hash hash-chaining across audit and action audit logs,
+with full tenant isolation and chain integrity verification.
+"""
 
+from datetime import UTC, datetime
+from typing import Any
+from uuid import UUID, uuid4
+
+import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.audit_log import AuditLog
-from app.repositories.audit_repository import AuditRepository
+from app.models.action import ActionAuditLog, _compute_action_audit_hash
+from app.models.audit_log import AuditLog, _compute_audit_entry_hash
+
+logger = structlog.get_logger(__name__)
+
+GENESIS_HASH = "0" * 64
 
 
-class AuditService:
-    def __init__(self, session: AsyncSession):
-        self.session = session
-        self.repo = AuditRepository(session)
+async def record_audit_log(
+    session: AsyncSession,
+    organization_id: UUID,
+    user_id: UUID | None,
+    event_type: str,
+    resource_type: str,
+    resource_id: str,
+    details: dict[str, Any],
+    ip_address: str | None = None,
+) -> AuditLog:
+    """
+    Appends a new cryptographically chained audit log entry to the organization's chain.
+    """
+    stmt = (
+        select(AuditLog)
+        .where(AuditLog.organization_id == organization_id)
+        .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+        .limit(1)
+    )
+    res = await session.execute(stmt)
+    latest = res.scalar_one_or_none()
 
-    async def _get_last_hash(self, org_id: UUID) -> str:
-        """Get the last entry_hash for the organization to chain from."""
-        stmt = (
-            select(AuditLog.entry_hash)
-            .where(AuditLog.organization_id == org_id)
-            .order_by(AuditLog.created_at.desc())
-            .limit(1)
+    prev_hash = latest.entry_hash if latest else GENESIS_HASH
+    entry_hash = _compute_audit_entry_hash(
+        prev_hash=prev_hash,
+        org_id=organization_id,
+        user_id=user_id,
+        event_type=event_type,
+        resource_id=resource_id,
+        details=details,
+    )
+
+    entry = AuditLog(
+        id=uuid4(),
+        organization_id=organization_id,
+        user_id=user_id,
+        event_type=event_type,
+        resource_type=resource_type,
+        resource_id=str(resource_id),
+        ip_address=ip_address,
+        details=details,
+        prev_hash=prev_hash,
+        entry_hash=entry_hash,
+        created_at=datetime.now(UTC),
+    )
+    session.add(entry)
+    await session.flush()
+    return entry
+
+
+async def verify_audit_log_chain(
+    session: AsyncSession,
+    organization_id: UUID,
+) -> tuple[bool, list[str]]:
+    """
+    Traverses the full audit log chain for an organization and validates cryptographic integrity.
+    Returns (is_valid, list_of_violations).
+    """
+    stmt = (
+        select(AuditLog)
+        .where(AuditLog.organization_id == organization_id)
+        .order_by(AuditLog.created_at.asc(), AuditLog.id.asc())
+    )
+    res = await session.execute(stmt)
+    entries = list(res.scalars().all())
+
+    if not entries:
+        return True, []
+
+    errors: list[str] = []
+    expected_prev = GENESIS_HASH
+
+    for i, entry in enumerate(entries):
+        if entry.prev_hash != expected_prev:
+            errors.append(
+                f"Chain broken at entry index {i} (id={entry.id}): "
+                f"expected prev_hash={expected_prev}, got {entry.prev_hash}"
+            )
+
+        computed = _compute_audit_entry_hash(
+            prev_hash=entry.prev_hash,
+            org_id=entry.organization_id,
+            user_id=entry.user_id,
+            event_type=entry.event_type,
+            resource_id=entry.resource_id,
+            details=entry.details,
         )
-        result = await self.session.execute(stmt)
-        row = result.scalar_one_or_none()
-        return row[0] if row else "0" * 64
+        if entry.entry_hash != computed:
+            errors.append(
+                f"Payload tampering detected at entry index {i} (id={entry.id}): "
+                f"stored hash={entry.entry_hash}, computed hash={computed}"
+            )
 
-    async def record_event(
-        self,
-        org_id: UUID,
-        user_id: UUID,
-        event_type: str,
-        resource_type: str,
-        resource_id: str,
-        details: dict,
-        ip_address: str | None = None
-    ) -> AuditLog:
-        prev_hash = await self._get_last_hash(org_id)
-        payload_str = json.dumps(details, sort_keys=True)
-        raw = f"{prev_hash}:{org_id}:{user_id}:{event_type}:{resource_id}:{payload_str}"
-        entry_hash = hashlib.sha256(raw.encode()).hexdigest()
+        expected_prev = entry.entry_hash
 
-        entry = AuditLog(
-            organization_id=org_id,
-            user_id=user_id,
-            event_type=event_type,
-            resource_type=resource_type,
-            resource_id=resource_id,
-            ip_address=ip_address,
-            details=details,
-            prev_hash=prev_hash,
-            entry_hash=entry_hash
+    return len(errors) == 0, errors
+
+
+async def record_action_audit_log(
+    session: AsyncSession,
+    organization_id: UUID,
+    user_id: UUID | None,
+    action_id: str,
+    action_type: str,
+    event_type: str,
+    status: str,
+    risk_level: str,
+    details: dict[str, Any],
+    request_id: str | None = None,
+    approval_id: str | None = None,
+    external_reference: str | None = None,
+) -> ActionAuditLog:
+    """
+    Appends a new cryptographically chained action audit log entry.
+    """
+    stmt = (
+        select(ActionAuditLog)
+        .where(ActionAuditLog.organization_id == organization_id)
+        .order_by(ActionAuditLog.created_at.desc(), ActionAuditLog.id.desc())
+        .limit(1)
+    )
+    res = await session.execute(stmt)
+    latest = res.scalar_one_or_none()
+
+    prev_hash = latest.entry_hash if latest else GENESIS_HASH
+    entry_hash = _compute_action_audit_hash(
+        prev_hash=prev_hash,
+        organization_id=organization_id,
+        user_id=user_id,
+        event_type=event_type,
+        resource_id=action_id,
+        details=details,
+    )
+
+    entry = ActionAuditLog(
+        id=uuid4(),
+        organization_id=organization_id,
+        user_id=user_id,
+        action_id=str(action_id),
+        action_type=action_type,
+        event_type=event_type,
+        status=status,
+        risk_level=risk_level,
+        request_id=request_id,
+        approval_id=approval_id,
+        external_reference=external_reference,
+        details=details,
+        prev_hash=prev_hash,
+        entry_hash=entry_hash,
+        created_at=datetime.now(UTC),
+    )
+    session.add(entry)
+    await session.flush()
+    return entry
+
+
+async def verify_action_audit_log_chain(
+    session: AsyncSession,
+    organization_id: UUID,
+) -> tuple[bool, list[str]]:
+    """
+    Traverses the full action audit log chain for an organization and validates integrity.
+    """
+    stmt = (
+        select(ActionAuditLog)
+        .where(ActionAuditLog.organization_id == organization_id)
+        .order_by(ActionAuditLog.created_at.asc(), ActionAuditLog.id.asc())
+    )
+    res = await session.execute(stmt)
+    entries = list(res.scalars().all())
+
+    if not entries:
+        return True, []
+
+    errors: list[str] = []
+    expected_prev = GENESIS_HASH
+
+    for i, entry in enumerate(entries):
+        if entry.prev_hash != expected_prev:
+            errors.append(
+                f"Action chain broken at index {i} (id={entry.id}): "
+                f"expected prev_hash={expected_prev}, got {entry.prev_hash}"
+            )
+
+        computed = _compute_action_audit_hash(
+            prev_hash=entry.prev_hash,
+            organization_id=entry.organization_id,
+            user_id=entry.user_id,
+            event_type=entry.event_type,
+            resource_id=entry.action_id,
+            details=entry.details,
         )
-        return await self.repo.log_entry(entry)
+        if entry.entry_hash != computed:
+            errors.append(
+                f"Action payload tampering detected at index {i} (id={entry.id}): "
+                f"stored={entry.entry_hash}, computed={computed}"
+            )
 
-    async def list_by_org(self, org_id: UUID, limit: int = 100) -> list[AuditLog]:
-        stmt = (
-            select(AuditLog)
-            .where(AuditLog.organization_id == org_id)
-            .order_by(AuditLog.created_at.desc())
-            .limit(limit)
-        )
-        result = await self.session.execute(stmt)
-        return list(result.scalars().all())
+        expected_prev = entry.entry_hash
+
+    return len(errors) == 0, errors

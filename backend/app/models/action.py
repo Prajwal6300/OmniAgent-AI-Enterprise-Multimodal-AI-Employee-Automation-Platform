@@ -51,6 +51,8 @@ class ActionApproval(Base):
     payload_hash = Column(String(64), nullable=False)  # Cryptographic binding hash
     approved_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     approved_at = Column(DateTime(timezone=True), nullable=True)
+    second_approved_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    second_approved_at = Column(DateTime(timezone=True), nullable=True)
     rejected_at = Column(DateTime(timezone=True), nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     decision_reason = Column(Text, nullable=True)
