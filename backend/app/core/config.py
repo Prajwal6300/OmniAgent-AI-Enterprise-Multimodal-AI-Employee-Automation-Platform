@@ -1,136 +1,151 @@
-import os
+from typing import Literal
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-def _validate_secret_key(value: str, min_len: int = 32) -> str:
-    """Validate that a secret key is not the default and meets minimum length."""
-    default_keys = {
-        "default-insecure-secret-key-override-in-env",
-        "jwt-secret-key-omniagent",
-    }
-    if value in default_keys:
-        raise ValueError(
-            f"Secret key must be set via environment variable, not using default '{value}'"
-        )
-    if len(value) < min_len:
-        raise ValueError(f"Secret key must be at least {min_len} characters, got {len(value)}")
-    return value
-
-
 class Settings(BaseSettings):
+    """
+    OmniAgent AI — Production Configuration & Settings
+    Strictly aligned to the fixed stack: OpenAI, Render, Supabase (pgvector & Storage), Redis.
+    """
+
+    # 1. Environment & Core
     PROJECT_NAME: str = "OmniAgent AI"
     API_V1_STR: str = "/api/v1"
-    ENVIRONMENT: str = "development"
-    DEBUG: bool = True
-    SECRET_KEY: str = _validate_secret_key(
-        os.getenv("SECRET_KEY", "default-insecure-secret-key-override-in-env"), min_len=32
-    )
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+    ENVIRONMENT: Literal["development", "production", "staging", "test"] = "development"
+    DEBUG: bool = False
 
-    JWT_SECRET: str = _validate_secret_key(
-        os.getenv("JWT_SECRET", "jwt-secret-key-omniagent"), min_len=32
+    # 2. Cryptographic Secrets (Required >= 32 chars in production)
+    SECRET_KEY: str = Field(
+        default="insecure-dev-secret-key-change-in-production-min32chars"
+    )
+    JWT_SECRET: str = Field(
+        default="insecure-dev-jwt-secret-change-in-production-min32chars"
+    )
+    ENCRYPTION_KEY: str = Field(
+        default="0123456789abcdef0123456789abcdef"
     )
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    ALLOWED_ORIGINS: list[str] = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://omniagent.ai",
+    ]
 
-    # Database - MUST be set via DATABASE_URL environment variable
-    # Local Docker: postgresql+asyncpg://USER:PASSWORD@host:port/database
-    # Production Supabase: postgres://USER:PASSWORD@host:port/database?sslmode=require
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+    # 3. Database (Supabase PostgreSQL with pgvector)
+    DATABASE_URL: str = Field(
+        default="postgresql+asyncpg://postgres:postgres@localhost:5432/omniagent_db"
+    )
+    ALEMBIC_DATABASE_URL: str | None = None
 
-    # Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
+    # 4. Redis (Render Key Value / Upstash / Celery)
+    REDIS_URL: str = Field(default="redis://localhost:6379/0")
     CELERY_BROKER_URL: str = "redis://localhost:6379/1"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
 
-    # Storage
-    STORAGE_PROVIDER: str = "local"
-    STORAGE_LOCAL_DIR: str = "storage/documents"
-    MAX_UPLOAD_SIZE_BYTES: int = 25 * 1024 * 1024  # 25 MB
-    S3_ENDPOINT_URL: str = "http://localhost:9000"
-    S3_BUCKET: str = "omniagent-documents"
-    S3_ACCESS_KEY: str = "minioadmin"
-    S3_SECRET_KEY: str = "minioadmin"
-
-    # AI Models
+    # 5. LLM & Embeddings (OpenAI API Only)
+    OPENAI_API_KEY: str = Field(default="")
     DEFAULT_MODEL: str = "gpt-4o"
-    OPENAI_API_KEY: str = ""
-    ANTHROPIC_API_KEY: str = ""
-    EMBEDDING_PROVIDER: str = "deterministic"  # "deterministic" | "mock" | "openai"
     EMBEDDING_MODEL: str = "text-embedding-3-large"
     EMBEDDING_DIMENSION: int = 1536
 
-    # RAG Configuration
+    # 6. Object Storage (Supabase S3 in production, local in dev)
+    STORAGE_PROVIDER: Literal["supabase", "local"] = "local"
+    STORAGE_LOCAL_DIR: str = "storage/documents"
+    MAX_UPLOAD_SIZE_BYTES: int = 25 * 1024 * 1024  # 25 MB
+    SUPABASE_S3_ENDPOINT: str = ""
+    SUPABASE_S3_REGION: str = "us-east-1"
+    SUPABASE_S3_ACCESS_KEY: str = ""
+    SUPABASE_S3_SECRET_KEY: str = ""
+    SUPABASE_BUCKET: str = "documents"
+
+    # 7. Optional Integrations (SMTP & Sentry)
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = "noreply@omniagent.ai"
+    SMTP_USE_TLS: bool = True
+    SENTRY_DSN: str = ""
+
+    # 8. Guardrails & Limits
     RAG_CHUNK_SIZE: int = 500
     RAG_CHUNK_OVERLAP: int = 50
     RAG_TOP_K: int = 5
     RAG_SIMILARITY_THRESHOLD: float = 0.05
-
-    # Reranker Configuration
-    RERANKER_PROVIDER: str = "cohere"  # "cohere" | "cross_encoder"
-    COHERE_API_KEY: str = ""
-    COHERE_RERANK_MODEL: str = "rerank-english-v3.0"
-
-    # Database Agent Configuration
     DATABASE_AGENT_MAX_ROWS: int = 100
     DATABASE_AGENT_MAX_LIMIT: int = 500
     DATABASE_AGENT_QUERY_TIMEOUT_SECONDS: int = 10
-
-    # Vision Agent Configuration
     VISION_MAX_FILE_SIZE_MB: int = 10
     VISION_MAX_WIDTH: int = 4096
     VISION_MAX_HEIGHT: int = 4096
     VISION_MAX_IMAGE_PIXELS: int = 16777216
     VISION_OCR_ENABLED: bool = True
     VISION_OBJECT_DETECTION_ENABLED: bool = True
-    VISION_PROVIDER: str = "openai"
-    VISION_MODEL: str = "gpt-4o"
-    VISION_STORAGE_DIR: str = "storage/images"
-
-    # Reasoning Agent Configuration
     REASONING_MAX_AGENT_CALLS: int = 5
     REASONING_MAX_AGENT_DEPTH: int = 3
     REASONING_AGENT_TIMEOUT_SECONDS: int = 30
-    REASONING_PROVIDER: str = "hybrid"
-    REASONING_MODEL: str = "gpt-4o"
-
-    # Action Agent Configuration
     ACTION_APPROVAL_EXPIRATION_MINUTES: int = 30
     ACTION_MAX_PAYLOAD_SIZE_KB: int = 256
     ACTION_EXECUTION_TIMEOUT_SECONDS: int = 30
-
-    # Email Integration Configuration
-    EMAIL_PROVIDER: str = "smtp"
-    SMTP_HOST: str = ""
-    SMTP_PORT: int = 1025
-    SMTP_USER: str = ""
-    SMTP_PASSWORD: str = ""
-    SMTP_FROM_EMAIL: str = "noreply@omniagent.ai"
-
-    # Orchestration Configuration
     ORCHESTRATION_MAX_STEPS: int = 20
     ORCHESTRATION_MAX_AGENT_CALLS: int = 10
     ORCHESTRATION_MAX_EXECUTION_SECONDS: int = 120
-    ORCHESTRATION_MAX_RETRIES: int = 2
-
-    # Workflow Automation Configuration
     WORKFLOW_MAX_STEPS: int = 30
     WORKFLOW_MAX_EXECUTION_SECONDS: int = 300
-
-    # Approval Configuration
     APPROVAL_EXPIRATION_MINUTES: int = 30
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     @model_validator(mode="after")
-    def check_production_secrets(self) -> "Settings":
-        if self.ENVIRONMENT == "production" and self.SECRET_KEY == self.JWT_SECRET:
-            raise ValueError(
-                "SECRET_KEY and JWT_SECRET must not be equal in production environment"
-            )
+    def validate_production_configuration(self) -> "Settings":
+        """Fail fast at startup if configuration is invalid for production."""
+        if self.ENVIRONMENT == "production":
+            insecure_defaults = {
+                "default-insecure-secret-key-override-in-env",
+                "jwt-secret-key-omniagent",
+                "insecure-dev-secret-key-change-in-production-min32chars",
+                "insecure-dev-jwt-secret-change-in-production-min32chars",
+                "0123456789abcdef0123456789abcdef",
+            }
+
+            # 1. Cryptographic Secrets
+            if not self.SECRET_KEY or self.SECRET_KEY in insecure_defaults or len(self.SECRET_KEY) < 32:
+                raise ValueError("In production, SECRET_KEY must be a unique non-default secret with >= 32 characters.")
+            if not self.JWT_SECRET or self.JWT_SECRET in insecure_defaults or len(self.JWT_SECRET) < 32:
+                raise ValueError("In production, JWT_SECRET must be a unique non-default secret with >= 32 characters.")
+            if self.SECRET_KEY == self.JWT_SECRET:
+                raise ValueError("In production, SECRET_KEY and JWT_SECRET must not be identical.")
+            if not self.ENCRYPTION_KEY or self.ENCRYPTION_KEY in insecure_defaults or len(self.ENCRYPTION_KEY) < 32:
+                raise ValueError("In production, ENCRYPTION_KEY must be a unique non-default secret with >= 32 characters.")
+
+            # 2. Database & Redis requirements
+            if not self.DATABASE_URL or "localhost" in self.DATABASE_URL:
+                raise ValueError("In production, DATABASE_URL must point to a remote managed PostgreSQL database (e.g. Supabase).")
+            if not self.REDIS_URL:
+                raise ValueError("In production, REDIS_URL must be configured.")
+
+            # 3. OpenAI requirements
+            if not self.OPENAI_API_KEY:
+                raise ValueError("In production, OPENAI_API_KEY must be set.")
+
+            # 4. Storage provider requirement
+            if self.STORAGE_PROVIDER == "local":
+                raise ValueError("In production, STORAGE_PROVIDER cannot be 'local'. Must be 'supabase'.")
+            if not self.SUPABASE_S3_ENDPOINT or not self.SUPABASE_S3_ACCESS_KEY or not self.SUPABASE_S3_SECRET_KEY:
+                raise ValueError("In production, SUPABASE_S3_ENDPOINT, SUPABASE_S3_ACCESS_KEY, and SUPABASE_S3_SECRET_KEY are required.")
+
+            # 5. Embedding dimension check
+            if self.EMBEDDING_DIMENSION != 1536:
+                raise ValueError("EMBEDDING_DIMENSION must be 1536 to match the database pgvector column.")
+
         return self
 
 

@@ -12,13 +12,17 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Read DATABASE_URL from environment variable - required for production
-database_url = os.environ.get("DATABASE_URL")
+# Read ALEMBIC_DATABASE_URL or DATABASE_URL from environment variable
+database_url = os.environ.get("ALEMBIC_DATABASE_URL") or os.environ.get("DATABASE_URL")
 
 if not database_url:
     raise RuntimeError(
-        "DATABASE_URL environment variable must be set for Alembic migrations"
+        "DATABASE_URL or ALEMBIC_DATABASE_URL environment variable must be set for Alembic migrations"
     )
+
+# Alembic migrations require synchronous database URL: convert asyncpg to psycopg2 / default
+if database_url.startswith("postgresql+asyncpg://"):
+    database_url = database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
 
 target_metadata = Base.metadata
 

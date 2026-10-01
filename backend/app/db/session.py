@@ -22,6 +22,18 @@ def _create_engine_safe():
         # Pool settings for asyncpg (PostgreSQL)
         kwargs["pool_size"] = 20
         kwargs["max_overflow"] = 10
+        kwargs["pool_recycle"] = 300
+        kwargs["pool_pre_ping"] = True
+
+        connect_args = {}
+        # When using Supabase transaction pooler (port 6543), disable prepared statement cache
+        if ":6543" in db_url or "pooler.supabase.com" in db_url:
+            connect_args["prepared_statement_cache_size"] = 0
+            connect_args["statement_cache_size"] = 0
+        if "ssl=require" in db_url or "sslmode=require" in db_url:
+            connect_args["ssl"] = "require"
+        if connect_args:
+            kwargs["connect_args"] = connect_args
 
     try:
         engine = create_async_engine(db_url, **kwargs)
