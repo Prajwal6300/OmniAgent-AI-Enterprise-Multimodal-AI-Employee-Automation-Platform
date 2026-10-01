@@ -1,12 +1,14 @@
 from uuid import UUID
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.dependencies.database import get_db_session
+
 from app.dependencies.auth import get_current_user
+from app.dependencies.database import get_db_session
 from app.models.user import User
-from app.services.approval_service import ApprovalService
 from app.schemas.approval import ApprovalDecision, ApprovalRead
 from app.schemas.common import ResponseEnvelope
+from app.services.approval_service import ApprovalService
 
 router = APIRouter(prefix="/approvals", tags=["Approvals"])
 

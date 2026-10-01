@@ -1,9 +1,8 @@
+from app.core.config import settings
 from app.services.rag.embeddings.provider import (
     DeterministicBackendEmbeddingProvider,
     EmbeddingProvider,
-    MockEmbeddingProvider,
 )
-from app.core.config import settings
 
 
 class EmbeddingFactory:

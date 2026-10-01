@@ -67,3 +67,8 @@ storage/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Cleanup & Temporary Review
+CLEANUP_REPORT.md
+_review_before_delete/
+

@@ -4,10 +4,11 @@ Defines structured execution event models, event types, and sanitize logging han
 Guarantees zero exposure of API keys, credentials, or internal chain-of-thought.
 """
 
+import uuid
 from datetime import UTC, datetime
 from enum import Enum
-import uuid
 from typing import Any
+
 from pydantic import BaseModel, Field
 
 try:

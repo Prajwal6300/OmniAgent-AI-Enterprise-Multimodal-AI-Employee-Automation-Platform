@@ -1,7 +1,8 @@
-from typing import List, Optional
 from uuid import UUID
+
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.workflow import Workflow, WorkflowRun
 
 
@@ -9,7 +10,7 @@ class WorkflowRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def list_by_org(self, org_id: UUID) -> List[Workflow]:
+    async def list_by_org(self, org_id: UUID) -> list[Workflow]:
         stmt = (
             select(Workflow)
             .where(Workflow.organization_id == org_id)
@@ -18,7 +19,7 @@ class WorkflowRepository:
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
-    async def get(self, workflow_id: UUID, org_id: UUID) -> Optional[Workflow]:
+    async def get(self, workflow_id: UUID, org_id: UUID) -> Workflow | None:
         stmt = select(Workflow).where(
             Workflow.id == workflow_id,
             Workflow.organization_id == org_id,
@@ -44,7 +45,7 @@ class WorkflowRepository:
         await self.session.flush()
         return run
 
-    async def get_run(self, run_id: UUID, org_id: UUID) -> Optional[WorkflowRun]:
+    async def get_run(self, run_id: UUID, org_id: UUID) -> WorkflowRun | None:
         stmt = select(WorkflowRun).where(
             WorkflowRun.id == run_id,
             WorkflowRun.organization_id == org_id,
@@ -52,7 +53,7 @@ class WorkflowRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list_runs_by_workflow(self, workflow_id: UUID, org_id: UUID) -> List[WorkflowRun]:
+    async def list_runs_by_workflow(self, workflow_id: UUID, org_id: UUID) -> list[WorkflowRun]:
         stmt = (
             select(WorkflowRun)
             .where(

@@ -1,8 +1,11 @@
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Text
+from datetime import UTC, datetime
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
+
 from app.db.base import Base
+
 
 class Notification(Base):
     __tablename__ = "notifications"
@@ -15,4 +18,4 @@ class Notification(Base):
     notification_type = Column(String(50), nullable=False)
     is_read = Column(Boolean, default=False, nullable=False)
     link_url = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)

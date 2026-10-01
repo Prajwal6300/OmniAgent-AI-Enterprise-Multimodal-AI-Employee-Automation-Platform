@@ -1,25 +1,50 @@
-from app.models.user import User, Organization, Department
-from app.models.role import Role, Permission, role_permissions
-from app.models.document import Document, DocumentChunk
-from app.models.conversation import Conversation, Message
+from app.models.action import ActionApproval, ActionAuditLog, ActionRecord
 from app.models.agent_run import AgentRun, ToolCall
-from app.models.workflow import Workflow, WorkflowRun
 from app.models.approval import Approval
-from app.models.notification import Notification
 from app.models.audit_log import AuditLog
+from app.models.business import (
+    Machine,
+    MaintenanceRequest,
+    Order,
+    Product,
+    ProductionRecord,
+    Vendor,
+)
+from app.models.conversation import Conversation, Message
+from app.models.document import Document, DocumentChunk
 from app.models.integration import Integration
-from app.models.business import Machine, ProductionRecord, Order, Product, Vendor, MaintenanceRequest
-from app.models.action import ActionRecord, ActionApproval, ActionAuditLog
+from app.models.notification import Notification
+from app.models.role import Permission, Role, role_permissions
+from app.models.user import Department, Organization, User
+from app.models.workflow import Workflow, WorkflowRun
 
 __all__ = [
-    "User", "Organization", "Department",
-    "Role", "Permission", "role_permissions",
-    "Document", "DocumentChunk",
-    "Conversation", "Message",
-    "AgentRun", "ToolCall",
-    "Workflow", "WorkflowRun",
-    "Approval", "Notification", "AuditLog", "Integration",
-    "Machine", "ProductionRecord", "Order", "Product", "Vendor", "MaintenanceRequest",
-    "ActionRecord", "ActionApproval", "ActionAuditLog",
+    "ActionApproval",
+    "ActionAuditLog",
+    "ActionRecord",
+    "AgentRun",
+    "Approval",
+    "AuditLog",
+    "Conversation",
+    "Department",
+    "Document",
+    "DocumentChunk",
+    "Integration",
+    "Machine",
+    "MaintenanceRequest",
+    "Message",
+    "Notification",
+    "Order",
+    "Organization",
+    "Permission",
+    "Product",
+    "ProductionRecord",
+    "Role",
+    "ToolCall",
+    "User",
+    "Vendor",
+    "Workflow",
+    "WorkflowRun",
+    "role_permissions",
 ]
 

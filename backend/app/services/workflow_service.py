@@ -4,17 +4,16 @@ Coordinates workflow CRUD, tenant boundaries, validation, execution runs, and au
 """
 
 from datetime import UTC, datetime
-from typing import Any, List, Optional
 from uuid import UUID, uuid4
 
+from automation.engine.engine import WorkflowEngine
+from automation.validator import validate_workflow_definition
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.workflow import Workflow, WorkflowRun
 from app.repositories.workflow_repository import WorkflowRepository
 from app.schemas.workflow import WorkflowCreate, WorkflowRunCreate, WorkflowUpdate
-from automation.engine.engine import WorkflowEngine
-from automation.validator import validate_workflow_definition
 
 
 class WorkflowService:
@@ -52,7 +51,7 @@ class WorkflowService:
         )
         return await self.repo.create(workflow)
 
-    async def list_workflows(self, org_id: UUID) -> List[Workflow]:
+    async def list_workflows(self, org_id: UUID) -> list[Workflow]:
         return await self.repo.list_by_org(org_id)
 
     async def get_workflow(self, workflow_id: UUID, org_id: UUID) -> Workflow:
@@ -144,7 +143,7 @@ class WorkflowService:
         await self.repo.update_run(run)
         return run
 
-    async def list_runs(self, workflow_id: UUID, org_id: UUID) -> List[WorkflowRun]:
+    async def list_runs(self, workflow_id: UUID, org_id: UUID) -> list[WorkflowRun]:
         await self.get_workflow(workflow_id, org_id)  # verify existence
         return await self.repo.list_runs_by_workflow(workflow_id, org_id)
 
@@ -174,7 +173,7 @@ class WorkflowService:
         self,
         run_id: UUID,
         org_id: UUID,
-        approval_id: Optional[str] = None,
+        approval_id: str | None = None,
         decision: str = "APPROVED",
     ) -> WorkflowRun:
         run = await self.get_run(run_id, org_id)

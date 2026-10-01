@@ -1,8 +1,10 @@
 import os
+
 os.environ["DATABASE_URL"] = "postgresql+asyncpg://postgres:postgres@localhost:5432/omniagent_db"
 
 # Now run alembic
 import sys
+
 sys.path.insert(0, '.')
 
 from alembic.config import Config

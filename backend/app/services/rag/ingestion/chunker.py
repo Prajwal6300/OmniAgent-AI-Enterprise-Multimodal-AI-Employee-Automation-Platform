@@ -1,5 +1,4 @@
-from typing import Any, List, Optional
-import re
+from typing import Any
 
 try:
     from app.core.config import settings
@@ -17,8 +16,8 @@ class TextChunker:
     """
     def __init__(
         self,
-        chunk_size: Optional[int] = None,
-        chunk_overlap: Optional[int] = None
+        chunk_size: int | None = None,
+        chunk_overlap: int | None = None
     ):
         if chunk_size is not None:
             self.chunk_size = chunk_size
@@ -37,12 +36,12 @@ class TextChunker:
         if self.chunk_overlap >= self.chunk_size:
             self.chunk_overlap = max(0, self.chunk_size // 5)
 
-    def chunk(self, text: str) -> List[str]:
+    def chunk(self, text: str) -> list[str]:
         """Splits plain text into overlapping chunks."""
         if not text:
             return []
 
-        chunks: List[str] = []
+        chunks: list[str] = []
         start = 0
         text_len = len(text)
 
@@ -58,15 +57,15 @@ class TextChunker:
 
     def chunk_pages(
         self,
-        pages: List[dict[str, Any]],
-        sections: Optional[List[dict[str, Any]]] = None
-    ) -> List[dict[str, Any]]:
+        pages: list[dict[str, Any]],
+        sections: list[dict[str, Any]] | None = None
+    ) -> list[dict[str, Any]]:
         """
         Sensible hierarchical chunker preserving physical page numbers and section boundaries.
         Input pages format: [{'page_number': 1, 'text': '...'}, ...]
         Returns: [{'chunk_index': 0, 'content': '...', 'page_number': 1, 'section': '...'}, ...]
         """
-        chunks: List[dict[str, Any]] = []
+        chunks: list[dict[str, Any]] = []
         chunk_idx = 0
 
         # Build section lookup if available

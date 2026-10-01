@@ -1,9 +1,12 @@
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import Column, String, DateTime, ForeignKey, Integer, Numeric, Text, Boolean
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from datetime import UTC, datetime
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
+
 from app.db.base import Base
+
 
 class AgentRun(Base):
     __tablename__ = "agent_runs"
@@ -15,7 +18,7 @@ class AgentRun(Base):
     agent_name = Column(String(100), nullable=False)
     task_description = Column(Text, nullable=False)
     status = Column(String(50), default="STARTED", nullable=False)
-    started_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    started_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     completed_at = Column(DateTime(timezone=True), nullable=True)
     latency_ms = Column(Integer, nullable=True)
     total_tokens = Column(Integer, default=0, nullable=False)
@@ -28,6 +31,7 @@ class ToolCall(Base):
     __tablename__ = "tool_calls"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     agent_run_id = Column(UUID(as_uuid=True), ForeignKey("agent_runs.id", ondelete="CASCADE"), nullable=False)
     tool_name = Column(String(100), nullable=False)
     input_parameters = Column(JSONB, nullable=False)

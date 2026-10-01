@@ -1,7 +1,10 @@
-import sys
 import logging
+import sys
+
 import structlog
+
 from app.core.config import settings
+
 
 def setup_logging():
     shared_processors = [

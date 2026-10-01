@@ -1,16 +1,17 @@
 from datetime import datetime
 from uuid import UUID
-from typing import Optional, List, Any
+
 from pydantic import BaseModel
+
 
 class MessageCreate(BaseModel):
     content: str
-    agent_type: Optional[str] = "SUPERVISOR"
+    agent_type: str | None = "SUPERVISOR"
 
 class Citation(BaseModel):
     document_id: UUID
     document_name: str
-    page_number: Optional[int] = None
+    page_number: int | None = None
     chunk_index: int
     text_snippet: str
 
@@ -19,8 +20,8 @@ class MessageRead(BaseModel):
     conversation_id: UUID
     sender_type: str
     content: str
-    citations: Optional[List[Citation]] = None
-    metadata: Optional[dict] = None
+    citations: list[Citation] | None = None
+    metadata: dict | None = None
     created_at: datetime
 
     class Config:

@@ -1,4 +1,5 @@
 import os
+
 os.environ["DATABASE_URL"] = "postgresql+psycopg://postgres:postgres@localhost:5432/omniagent_db"
 
 from sqlalchemy import create_engine, text

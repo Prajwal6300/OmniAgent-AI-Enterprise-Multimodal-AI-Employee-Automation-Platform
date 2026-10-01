@@ -113,6 +113,7 @@
 - [93. Interview Preparation](#93-interview-preparation)
 - [94. Developer Guide](#94-developer-guide)
 - [95. Final Production Checklist](#95-final-production-checklist)
+- [96. Remaining Work and Known Errors](#96-remaining-work-and-known-errors)
 
 ---
 
@@ -3372,3 +3373,244 @@ Prior to production deployment, verify all checklist items:
 - [ ] Frontend production build generated without errors (`npm run build`).
 
 ---
+
+# 96. Remaining Work and Known Errors
+
+This section provides an unvarnished, exhaustive, and technically precise audit of all remaining work, partial implementations, scaffolding stubs, known runtime errors, architectural debt, and mitigation strategies across the entire OmniAgent-AI codebase. It serves as the definitive engineering backlog and technical debt register for enterprise production hardening.
+
+---
+
+### 96.1 Executive Audit Summary & Codebase Health Matrix
+
+While the foundational architecture (FastAPI backend, PostgreSQL 16 schema with 27 tenant-partitioned models, LangGraph supervisor graph, HMAC-SHA256 HITL approvals, and core React UI pages) is robustly implemented, several secondary subsystems currently rely on mock providers, lightweight scaffolding, or static responses:
+
+| Subsystem / Layer | Component / Domain | Current Status | Primary Source Files | Actionable Remaining Work |
+| :--- | :--- | :---: | :--- | :--- |
+| **Multimodal Audio** | Speech-to-Text & Diarization | 🟡 Scaffolded | `multimodal/audio/transcriber.py`, `processor.py` | Replace mock dictionary with Faster-Whisper / OpenAI Whisper streaming pipeline |
+| **Multimodal Video** | Keyframe Sampling & Scene Detection | 🟡 Scaffolded | `multimodal/video/analyzer.py`, `frame_extractor.py` | Implement OpenCV `cv2.VideoCapture` scene-change frame sampling & temporal reasoning |
+| **Multimodal Docs** | Office Document Parsers (DOCX/PPTX) | 🟡 Scaffolded | `multimodal/documents/docx.py`, `pptx.py` | Bridge `python-docx` and `python-pptx` into unified multimodal pipeline |
+| **Multimodal API** | Unified Media Ingestion Endpoint | 🟡 Scaffolded | `backend/app/api/v1/multimodal.py`, `multimodal_service.py` | Route requests dynamically to vision, audio, or document pipelines |
+| **Frontend UI** | Auxiliary & Admin Pages (10 Pages) | 🟡 Placeholder | `frontend/src/pages/` (Admin, Video, Voice, Tasks, Settings, etc.) | Replace 18-line placeholder cards with full dashboard tables and operational forms |
+| **Backend API** | Analytics, Integrations, Notifications | 🟡 Static / Stubs | `backend/app/api/v1/analytics.py`, `integrations.py`, `notifications.py` | Replace hardcoded zeroes/empty lists with live SQLAlchemy repository queries |
+| **Backend API** | User Management Administration | 🟡 Partial | `backend/app/api/v1/users.py` | Implement user CRUD, invitation flow, and role-reassignment endpoints |
+| **Chat & Streaming**| Token-by-Token Response Streaming | 🟡 Partial | `backend/app/api/v1/chat.py`, `orchestration.py` | Implement Server-Sent Events (SSE) `/api/v1/chat/stream` for real-time typing |
+| **RAG Retrieval** | Vector Result Reranking | 🟡 Pass-Through | `backend/app/services/rag/retrieval/reranking.py` | Replace `[:top_k]` truncation with Cohere / BGE cross-encoder reranker |
+| **RAG Retrieval** | Hybrid Sparse + Dense Search | 🟡 Pass-Through | `backend/app/services/rag/retrieval/hybrid_search.py` | Combine pgvector dense cosine search with PostgreSQL `tsvector` BM25 search |
+| **RAG Generation** | Granular Sentence-Level Citations | 🟡 Naive | `backend/app/services/rag/generation/citations.py` | Implement span-level claim verification and bracketed document citations |
+| **Automation** | Calendar & Interval Cron Scheduling | 🟡 Stubbed | `automation/engine/scheduler.py` | Implement APScheduler / Celery Beat task scheduler |
+| **Automation** | Event Triggers & Listeners | 🟡 Scaffolded | `automation/triggers/database_event.py`, `email.py`, `file_upload.py` | Connect PostgreSQL LISTEN/NOTIFY and Redis Streams to trigger workflows |
+| **Enterprise Tools**| ERP System Connectors (SAP / Oracle) | 🟡 Mock Stubs | `tools/erp/adapters/sap.py`, `oracle.py` | Implement SAP NetWeaver / OData REST client and Oracle Database adapter |
+| **Governance** | SLA Escalation Policy | 📋 Planned | `agents/action/approval.py`, `backend/app/services/approval_service.py` | Add background worker to re-assign or escalate approvals exceeding 30-min window |
+
+---
+
+### 96.2 Incomplete Features & Scaffolding Stubs (File-by-File Analysis)
+
+#### 1. Multimodal Audio Subsystem (`multimodal/audio/`)
+* **Current Implementation**:
+  ```python
+  # multimodal/audio/transcriber.py
+  class AudioTranscriber:
+      def transcribe(self, audio_path: str) -> Dict[str, Any]:
+          return {
+              "text": "Transcribed speech from audio recording.",
+              "duration_seconds": 12.5,
+              "segments": []
+          }
+  ```
+* **Remaining Work**:
+  - Integrate `faster-whisper` (`WhisperModel("large-v3", device="cuda" if torch.cuda.is_available() else "cpu")`) or cloud Whisper API.
+  - Implement speaker diarization via `pyannote.audio` to distinguish multiple speakers in operational dispatches.
+  - Add audio format normalization (converting `.mp3`, `.m4a`, `.ogg`, `.flac` to 16kHz mono `.wav` via `ffmpeg-python`).
+  - Wire audio transcription outputs into the Supervisor agent context for cross-modal synthesis.
+
+#### 2. Multimodal Video Subsystem (`multimodal/video/`)
+* **Current Implementation**:
+  ```python
+  # multimodal/video/analyzer.py & frame_extractor.py
+  class VideoAnalyzer:
+      def summarize_video(self, video_path: str) -> Dict[str, Any]:
+          return {"summary": "Operational video recording.", "events": []}
+
+  class FrameExtractor:
+      def extract_keyframes(self, video_path: str, interval_sec: int = 5) -> List[str]:
+          return ["frame_001.jpg", "frame_002.jpg"]
+  ```
+* **Remaining Work**:
+  - Implement real frame extraction using OpenCV (`cv2.VideoCapture`), sampling keyframes based on histogram difference or Structural Similarity Index (SSIM) thresholds.
+  - Implement keyframe image compression and temporary storage under `storage/video_frames/{tenant_id}/{run_id}/`.
+  - Pass extracted keyframes through `VisionAgent` for visual anomaly detection, OCR on embedded gauges, and defect identification.
+  - Build temporal event synthesis to sequence extracted observations into a chronological inspection log.
+
+#### 3. Office Document Extractors (`multimodal/documents/`)
+* **Current Implementation**:
+  - `multimodal/documents/docx.py` returns `{"paragraphs": [], "metadata": {"file": file_path}}`.
+  - `multimodal/documents/pptx.py` returns `[{"slide_number": 1, "notes": "", "text": []}]`.
+* **Remaining Work**:
+  - Unify `multimodal/documents/` with the robust `agents/document/extractor.py` implementation.
+  - Implement native table extraction for DOCX files preserving row/column alignment.
+  - Extract speaker notes and embedded diagram shapes from PPTX slides using `python-pptx`.
+
+#### 4. Frontend UI Placeholder Pages (10 Pending Dashboards)
+In `frontend/src/pages/`, 10 out of 20 pages currently render 18-line placeholder cards:
+```tsx
+// Typical placeholder structure in Admin, Video, Voice, Tasks, Settings, etc.:
+export default function VideoProcessingPage() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-100">Video Processing</h1>
+        <p className="text-sm text-slate-400 mt-1">Extract keyframes and analyze temporal operational video feeds.</p>
+      </div>
+      <Card>
+        <div className="py-8 text-center text-slate-400">
+          <p className="text-sm">Video Processing module active and ready.</p>
+        </div>
+      </Card>
+    </div>
+  );
+}
+```
+* **Remaining Work by Page**:
+  1. `frontend/src/pages/Admin/index.tsx`: Build organization settings, tenant switcher, user table with role dropdowns (`Owner`, `Admin`, `Supervisor`, `Operator`, `Auditor`, `Viewer`), and invite modal.
+  2. `frontend/src/pages/Video/index.tsx`: Build video file dropzone, video preview player, keyframe thumbnail carousel, timeline scrubber, and detected visual events panel.
+  3. `frontend/src/pages/Voice/index.tsx`: Build microphone recording widget, audio file uploader, interactive waveform visualizer (via Wavesurfer.js), and speaker-diarized transcript pane.
+  4. `frontend/src/pages/Tasks/index.tsx`: Build Celery background task monitor table with columns (`Task ID`, `Name`, `Status`, `Progress`, `Runtime`, `Actions`), filter tabs, and task cancellation buttons.
+  5. `frontend/src/pages/Settings/index.tsx`: Build LLM API key manager, embedding provider toggle (`openai` vs `deterministic`), default model selector, webhook URLs, and session timeout sliders.
+  6. `frontend/src/pages/Notifications/index.tsx`: Build notification center with read/unread filters, category badges (`APPROVAL`, `SYSTEM`, `ALERT`, `TASK`), and mark-all-as-read action.
+  7. `frontend/src/pages/Integrations/index.tsx`: Build integration connection cards (Slack, SendGrid/SMTP, Jira, SAP ERP, AWS S3/MinIO) with API key inputs, test connection buttons, and sync status badges.
+  8. `frontend/src/pages/Analytics/index.tsx`: Build Recharts visualization suite showing daily token consumption, USD cost breakdown by model, agent invocation latency percentiles (p50, p95, p99), and workflow success rates.
+  9. `frontend/src/pages/Agents/index.tsx`: Build agent roster card grid displaying each specialist's status, model allocation, temperature setting, and an editable system prompt modal.
+  10. `frontend/src/pages/AgentRuns/index.tsx`: Build detailed agent execution run ledger with searchable trace IDs, LangGraph node transition timeline, step latency metrics, and payload inspector.
+
+#### 5. Backend API Endpoints Returning Mock or Static Data
+* **Analytics Overview (`backend/app/api/v1/analytics.py`)**:
+  - Currently returns: `ResponseEnvelope(data={"total_runs": 0, "total_cost_usd": 0.0, "pending_approvals": 0})`.
+  - Fix: Execute aggregate queries against `workflow_runs`, `action_approvals`, and `execution_events` scoped by `organization_id`.
+* **Integrations (`backend/app/api/v1/integrations.py`)**:
+  - Currently returns: `ResponseEnvelope(data=[])`.
+  - Fix: Query the `integrations` table to list configured third-party connectors with redacted API secrets.
+* **Notifications (`backend/app/api/v1/notifications.py`)**:
+  - Currently returns: `ResponseEnvelope(data=[])`.
+  - Fix: Query `notifications` table filtered by `organization_id == current_user.organization_id` and `user_id == current_user.id`, ordered by `created_at DESC`.
+* **User Management (`backend/app/api/v1/users.py`)**:
+  - Currently only exposes `GET /api/v1/users/me`.
+  - Fix: Implement `GET /api/v1/users` (list org members), `POST /api/v1/users/invite` (dispatch email invite), `PUT /api/v1/users/{id}/role` (update RBAC role), and `DELETE /api/v1/users/{id}` (deactivate user).
+
+#### 6. RAG Pipeline Technical Debt & Retrieval Enhancements
+* **Reranking Pass-Through (`backend/app/services/rag/retrieval/reranking.py`)**:
+  - Currently: `def rerank(self, query: str, candidate_chunks: List[Any], top_k: int = 3): return candidate_chunks[:top_k]`.
+  - Fix: Implement true cross-encoder reranking utilizing sentence-transformers `CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")` or Cohere Rerank API to re-score candidate chunks based on joint query-document cross-attention.
+* **Hybrid Search Disconnect (`backend/app/services/rag/retrieval/hybrid_search.py`)**:
+  - Currently delegates exclusively to `VectorSearch.search()`.
+  - Fix: Execute parallel sparse full-text search using PostgreSQL `tsvector` and `plainto_tsquery('english', :query)` alongside dense vector cosine similarity, fusing rank positions via Reciprocal Rank Fusion (RRF):
+    $$RRF\_Score(d) = \sum_{m \in M} \frac{1}{60 + r_m(d)}$$
+* **Citation Extraction Scaffolding (`backend/app/services/rag/generation/citations.py`)**:
+  - Currently attaches all candidate chunks without validating whether the LLM's generated response actually cited the text.
+  - Fix: Implement exact N-gram and semantic span alignment between LLM claims and source chunk text, generating strict citation references `[Doc: Contract_2026.pdf, p. 12]`.
+
+#### 7. Automation Engine & Scheduler Gaps
+* **Workflow Scheduler (`automation/engine/scheduler.py`)**:
+  - Currently: `def schedule_cron(self, workflow_id: str, cron_expression: str): pass`.
+  - Fix: Integrate `APScheduler` or Celery Beat to persist cron triggers in PostgreSQL and fire asynchronous execution tasks at specified intervals.
+* **Event-Driven Triggers (`automation/triggers/database_event.py`, etc.)**:
+  - Currently wraps trigger metadata in a plain dictionary without real-time listeners.
+  - Fix: Implement PostgreSQL `LISTEN` / `NOTIFY` worker or Debezium CDC consumer to detect table mutations (`INSERT`, `UPDATE`) and immediately trigger matching workflows.
+
+#### 8. Enterprise ERP Adapters (`tools/erp/adapters/`)
+* **SAP Adapter (`tools/erp/adapters/sap.py`)**:
+  - Currently returns mock PO dictionary: `{"po_number": po_number, "vendor": "ACME Corp", "total": 12500.00}`.
+  - Fix: Implement SAP OData REST adapter via `httpx` or RFC binary client via `pyrfc` to read real purchase orders and post goods receipts.
+* **Oracle Adapter (`tools/erp/adapters/oracle.py`)**:
+  - Currently returns mock invoice dictionary: `{"invoice_id": invoice_id, "status": "APPROVED", "amount": 4200.50}`.
+  - Fix: Implement Oracle Fusion Cloud REST API client or `oracledb` connection pool to query enterprise financial ledgers.
+
+---
+
+### 96.3 Known Runtime Errors, Root Causes & Debugging Solutions (Error Catalog)
+
+Below is the definitive catalog of known runtime exceptions, error messages, root causes, and verified fixes across the platform:
+
+| # | Error Code / Exception | Typical Log Snippet | Root Cause | Verified Resolution / Fix |
+| :-: | :--- | :--- | :--- | :--- |
+| **1** | `TooManyConnectionsError` | `asyncpg.exceptions.TooManyConnectionsError: remaining connection slots are reserved for non-replication superuser connections` | SQLAlchemy connection pool exhaustion under concurrent API requests or connecting directly to Supabase session pooler (port 5432) instead of transaction pooler. | Connect via Supabase Transaction Pooler (port `6543`) with `?pgbouncer=true`. In `app/db/session.py`, configure: `pool_size=20, max_overflow=10, pool_recycle=300, pool_pre_ping=True`. |
+| **2** | `pgvector Dimension Mismatch` | `asyncpg.exceptions.DataError: different vector dimensions 1536 and 3072` | Embedding model `text-embedding-3-large` generating 3072 dimensions inserted into a table column defined as `Vector(1536)`. | Force `dimensions=1536` parameter in the OpenAI embedding API call, or execute Alembic migration: `ALTER TABLE document_chunks ALTER COLUMN embedding TYPE vector(3072);`. |
+| **3** | `GraphRecursionError` | `langgraph.errors.GraphRecursionError: Recursion limit of 20 reached without hitting a terminal node` | Supervisor and Specialist agents trapped in cyclical routing loop when queries fail to resolve or invalid tool names are requested. | Enforce hard iteration limit in `OrchestrationState.step_count >= settings.ORCHESTRATION_MAX_STEPS`. Add cycle detection in `SupervisorAgent` routing logic and force fallback to Human Approval. |
+| **4** | `HMAC Signature Failure` | `HTTP 400 Bad Request: Approval signature verification failed or payload has been tampered with` | Payload dictionary key ordering differences during JSON serialization, or `SECRET_KEY` mismatch across worker instances. | Canonicalize payload serialization prior to hashing: `json.dumps(payload, sort_keys=True, separators=(',', ':'))`. Ensure uniform `SECRET_KEY` in all backend and Celery worker `.env` files. |
+| **5** | `SQLSecurityViolation False Positive` | `agents.database.exceptions.SQLSecurityViolation: Query contains forbidden DDL/DML token: 'order'` | Naive regex substring matching on word boundaries flagging legitimate column names like `order_date`, `drop_off_point`, or `alter_ego`. | Replace regex token matching with full AST parsing via `sqlglot`. Validate that root statement is strictly `exp.Select` and no child node is `exp.Drop`, `exp.Alter`, or `exp.Delete`. |
+| **6** | `Celery Broker Connection Drop` | `kombu.exceptions.OperationalError: [Errno 111] Connection refused` | Redis container restart or network blip causing Celery workers to lose connection, leaving workflow runs permanently in `PENDING` state. | Set `broker_connection_retry_on_startup = True` and configure `task_acks_late = True`. Implement periodic watchdog cron to re-queue orphaned tasks older than 15 minutes. |
+| **7** | `Worker Out-Of-Memory (OOM)` | `MemoryError: Unable to allocate 1.2 GiB for an array with shape (12000, 8400, 3)` | Synchronous PDF rasterization (`fitz` / `pdf2image`) loading all 100+ pages of a high-DPI scanned document into RAM simultaneously. | Process PDF pages sequentially in a generator with `gc.collect()`. Limit maximum page dimension to 2048px during rasterization. Chunk documents into 20-page partitions. |
+| **8** | `CORS Multipart Preflight Block` | `Access to XMLHttpRequest from origin 'http://localhost:5173' blocked by CORS policy: Response to preflight request doesn't pass access control check` | Missing `Authorization` or `Content-Type: multipart/form-data` in allowed headers during document or image file upload. | Configure `CORSMiddleware` in `backend/app/main.py`: `allow_origins=settings.ALLOWED_ORIGINS.split(",")`, `allow_headers=["*"]`, `allow_methods=["*"]`, `allow_credentials=True`. |
+| **9** | `ForeignKeyViolation on Tenant Delete` | `asyncpg.exceptions.ForeignKeyViolationError: update or delete on table "organizations" violates foreign key constraint` | One of the 27 database models omitted `ondelete="CASCADE"` on its `organization_id` foreign key column. | Ensure every model inherits `organization_id = Column(UUID, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)`. Run `python scripts/debug_fk.py` to verify constraints. |
+| **10**| `TesseractNotFoundError` | `pytesseract.pytesseract.TesseractNotFoundError: tesseract is not installed or it's not in your PATH` | Running backend locally on bare-metal Windows/macOS without system Tesseract binary installed. | In Docker, ensure `apt-get install -y tesseract-ocr` is in Dockerfile. On Windows local dev, install Tesseract via Chocolatey (`choco install tesseract`) and set `pytesseract.pytesseract.tesseract_cmd`. |
+
+---
+
+### 96.4 Architectural Technical Debt & Performance Limitations
+
+1. **Synchronous Tool Execution in Async Event Loop**:
+   - *Issue*: Several legacy tool functions (e.g. `smtplib.SMTP`, local file I/O, and `pytesseract.image_to_string`) perform synchronous, blocking I/O inside FastAPI's async event loop.
+   - *Impact*: Under heavy concurrent load, blocking calls freeze the worker thread, degrading p99 API response latencies.
+   - *Mitigation*: Wrap all synchronous operations in `asyncio.to_thread()` or delegate to background Celery workers via Celery task queues.
+
+2. **Race Conditions in Workflow Resumption (Missing Distributed Locks)**:
+   - *Issue*: When multiple managers concurrently click "Approve" on the same pending approval in the frontend UI, both requests can execute the external actuation (e.g. sending duplicate emails or creating duplicate tickets).
+   - *Impact*: Non-idempotent duplicate side effects in enterprise production systems.
+   - *Mitigation*: Enforce a Redis distributed lock (`redlock`) scoped to the `approval_id` during decision processing:
+     ```python
+     async with redis_client.lock(f"lock:approval:{approval_id}", timeout=10):
+         # Check approval status and execute actuation
+     ```
+
+3. **Static RBAC Dependencies vs Dynamic Permission Store**:
+   - *Issue*: Role permissions are hardcoded in procedural Python files (`backend/app/dependencies/permissions.py`) rather than being dynamic, database-driven permissions that can be modified via an admin dashboard.
+   - *Mitigation*: Migrate to an Access Control List (ACL) table (`role_permissions`) joined to the `roles` model, allowing administrators to customize role capabilities per tenant.
+
+4. **Default Local Storage in Distributed Environments**:
+   - *Issue*: The default configuration `STORAGE_PROVIDER=local` stores uploaded documents on the local filesystem (`storage/documents/`). In multi-container Docker Swarm or AWS ECS deployments without persistent shared NFS volumes, uploaded files become inaccessible to backend replicas.
+   - *Mitigation*: Mandate `STORAGE_PROVIDER=minio` or `STORAGE_PROVIDER=s3` for all multi-container production deployments.
+
+5. **Lack of Real-Time Token Streaming**:
+   - *Issue*: The unified chat endpoint (`POST /api/v1/chat`) waits for the full multi-agent orchestration cycle to complete before returning the final JSON payload.
+   - *Impact*: For complex multi-agent queries requiring 10-20 seconds of LLM reasoning, the user experiences a perceived stall.
+   - *Mitigation*: Implement an SSE endpoint (`GET /api/v1/chat/stream?session_id=...`) yielding token-by-token deltas and real-time agent status events (`"supervisor_planning"`, `"searching_database"`, `"generating_response"`).
+
+---
+
+### 96.5 Actionable Remediation Roadmap (Prioritized Execution Plan)
+
+The remaining work is structured into four sequential engineering milestones:
+
+```mermaid
+flowchart LR
+    P0["P0: Production Blockers\n(Security, Reranking, Locks)"] --> P1["P1: Core Feature Completeness\n(Frontend Pages, Whisper, SSE)"]
+    P1 --> P2["P2: Enterprise Integrations\n(SAP/Oracle ERP, Cron Scheduler)"]
+    P2 --> P3["P3: Advanced Horizons\n(Autonomous Negotiation, WebRTC)"]
+```
+
+#### Priority 0: Critical Production Blockers (Target: Immediate)
+* [ ] **Fix RAG Pass-Through Reranker**: Implement cross-encoder reranking or Cohere Rerank in `backend/app/services/rag/retrieval/reranking.py`.
+* [ ] **Implement Hybrid Search**: Integrate PostgreSQL `tsvector` keyword search with dense pgvector cosine similarity in `backend/app/services/rag/retrieval/hybrid_search.py`.
+* [ ] **Enforce Redis Distributed Locking**: Wrap approval decision and workflow resume endpoints with Redis distributed locks to eliminate actuation race conditions.
+* [ ] **AST SQL Parsing**: Replace regex token checks with `sqlglot` AST parsing in `agents/database/security.py` to eliminate false positives on valid queries.
+
+#### Priority 1: Feature Completeness & UX Hardening (Target: Sprint 1-2)
+* [ ] **Replace 10 Frontend Placeholder Pages**: Build functional UI dashboards for `Admin`, `Analytics`, `Integrations`, `Video`, `Voice`, `Tasks`, `Settings`, `Notifications`, `Agents`, and `AgentRuns`.
+* [ ] **Connect Backend API Stubs**: Wire live database aggregation queries into `/api/v1/analytics/overview`, `/api/v1/integrations`, and `/api/v1/notifications`.
+* [ ] **Real-Time Token Streaming**: Implement Server-Sent Events (SSE) `/api/v1/chat/stream` for interactive streaming in the React Chat interface.
+* [ ] **Live Audio Transcription**: Integrate Faster-Whisper ASR into `multimodal/audio/transcriber.py`.
+* [ ] **Live Video Keyframe Extraction**: Integrate OpenCV scene-change frame sampling into `multimodal/video/frame_extractor.py`.
+
+#### Priority 2: Enterprise Integrations & Automation (Target: Sprint 3-4)
+* [ ] **Workflow Cron Scheduling**: Hook `APScheduler` or Celery Beat into `automation/engine/scheduler.py` to support scheduled recurring workflows.
+* [ ] **Event-Driven Database Triggers**: Implement PostgreSQL `LISTEN`/`NOTIFY` workers to trigger workflows on database mutations.
+* [ ] **Live SAP & Oracle ERP Adapters**: Implement production REST/OData connectors in `tools/erp/adapters/sap.py` and `oracle.py`.
+* [ ] **SLA Escalation Worker**: Implement Celery periodic task to automatically reassign or escalate approvals pending for more than 30 minutes.
+
+#### Priority 3: Long-Term Horizons & Advanced Capabilities (Target: Future Release)
+* [ ] **WebRTC Voice Calling**: Integrate SIP/WebRTC telephony gateway for autonomous voice interaction with suppliers.
+* [ ] **Autonomous Agent Negotiation**: Implement cryptographic multi-agent communication protocols for inter-enterprise PO reconciliation.
+* [ ] **Hardware Security Module (HSM)**: Integrate AWS CloudHSM or HashiCorp Vault for signing HMAC approval tokens.
+
+---
+

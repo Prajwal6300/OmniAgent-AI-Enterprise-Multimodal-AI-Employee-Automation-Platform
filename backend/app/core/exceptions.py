@@ -1,4 +1,3 @@
-from fastapi import HTTPException, status
 
 class BaseAppException(Exception):
     def __init__(self, message: str, details: dict = None):

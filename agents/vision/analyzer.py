@@ -362,11 +362,26 @@ class HybridVisionProvider:
 
 def get_vision_provider(provider_name: str | None = None) -> VisionProvider:
     """Factory retrieving the configured VisionProvider."""
-    name = (provider_name or getattr(settings, "VISION_PROVIDER", "mock")).lower()
-    if name == "openai":
-        api_key = getattr(settings, "OPENAI_API_KEY", "") or os.getenv(
-            "OPENAI_API_KEY", ""
-        )
-        if api_key:
-            return HybridVisionProvider()
+    name = (provider_name or getattr(settings, "VISION_PROVIDER", "openai")).lower()
+    api_key = getattr(settings, "OPENAI_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")
+    if name == "openai" and api_key:
+        return HybridVisionProvider()
+    if name == "openai" and not api_key:
+        # Honestly report NOT_CONFIGURED instead of silently falling back to mock
+        class NotConfiguredProvider:
+            async def analyze(
+                self,
+                image_bytes: bytes,
+                question: str,
+                task_type: str = "GENERAL_IMAGE_ANALYSIS",
+                ocr_result: dict[str, Any] | None = None,
+                detected_objects: list[dict[str, Any]] | None = None,
+                context: dict[str, Any] | None = None,
+            ) -> dict[str, Any]:
+                raise VisionProviderError(
+                    "Vision provider 'openai' selected but OPENAI_API_KEY is not configured. "
+                    "Set OPENAI_API_KEY environment variable or change VISION_PROVIDER."
+                )
+        return NotConfiguredProvider()
+    # Mock provider only allowed in development/testing
     return MockVisionProvider()

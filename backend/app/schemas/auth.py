@@ -1,6 +1,6 @@
-from typing import Optional
-from uuid import UUID
+
 from pydantic import BaseModel, EmailStr
+
 
 class Token(BaseModel):
     access_token: str
@@ -8,8 +8,8 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 class TokenPayload(BaseModel):
-    sub: Optional[str] = None
-    type: Optional[str] = None
+    sub: str | None = None
+    type: str | None = None
 
 class LoginRequest(BaseModel):
     email: EmailStr

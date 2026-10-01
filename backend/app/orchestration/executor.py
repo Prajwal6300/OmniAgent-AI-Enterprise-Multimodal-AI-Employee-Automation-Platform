@@ -10,18 +10,17 @@ from typing import Any
 
 from app.core.logging import logger
 from app.orchestration.errors import (
-    ActionExecutionFailedError,
-    ExecutionTimeoutError,
-    TenantSecurityViolationError,
     UnauthorizedAgentCallError,
 )
 from app.orchestration.events import (
     EventRecorder,
     OrchestrationEventType,
+)
+from app.orchestration.events import (
     event_recorder as default_recorder,
 )
-from app.orchestration.limits import enforce_execution_timeout, get_orchestration_limits
-from app.orchestration.policies import SafeTransitionPolicy, SecurityPolicy
+from app.orchestration.limits import get_orchestration_limits
+from app.orchestration.policies import SecurityPolicy
 from app.orchestration.registry import normalize_agent_name
 
 
@@ -93,7 +92,7 @@ class OrchestrationAgentExecutor:
                 "error": None,
             }
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             elapsed_ms = round((time.time() - start_time) * 1000, 2)
             logger.error("agent_execution_timeout", agent=canonical_name, request_id=req_id)
             self.events.record(

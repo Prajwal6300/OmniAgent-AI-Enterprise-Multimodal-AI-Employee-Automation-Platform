@@ -1,10 +1,18 @@
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import Column, String, BigInteger, DateTime, ForeignKey, Integer, Text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from datetime import UTC, datetime
+
 from pgvector.sqlalchemy import Vector
+from sqlalchemy import func, BigInteger, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
+
+from app.core.config import settings
 from app.db.base import Base
+
+
+def _embedding_vector_type():
+    return Vector(settings.EMBEDDING_DIMENSION)
+
 
 class Document(Base):
     __tablename__ = "documents"
@@ -19,8 +27,8 @@ class Document(Base):
     checksum_sha256 = Column(String(64), nullable=False)
     processing_status = Column(String(50), default="PENDING", nullable=False)
     metadata_ = Column("metadata", JSONB, default=dict, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
 
     chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")
 
@@ -33,8 +41,8 @@ class DocumentChunk(Base):
     chunk_index = Column(Integer, nullable=False)
     content = Column(Text, nullable=False)
     token_count = Column(Integer, nullable=False)
-    embedding = Column(Vector(1536), nullable=True)
+    embedding = Column(_embedding_vector_type(), nullable=True)
     metadata_ = Column("metadata", JSONB, default=dict, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
 
     document = relationship("Document", back_populates="chunks")

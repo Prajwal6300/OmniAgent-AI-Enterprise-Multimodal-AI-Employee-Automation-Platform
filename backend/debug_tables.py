@@ -1,8 +1,9 @@
 import os
+
 os.chdir(r"F:\Projects\OmniAgent AI — Enterprise Multimodal AI Employee & Automation Platform\backend")
 
-from app.db.base import Base
 import app.models  # noqa
+from app.db.base import Base
 
 # Check Table attributes
 table = Base.metadata.tables['users']

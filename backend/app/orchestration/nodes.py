@@ -4,21 +4,17 @@ Implements atomic, deterministic node steps for authentication, validation,
 supervisor analysis, specialist dispatching, reasoning, approval gating, verification, and audit.
 """
 
-from datetime import UTC, datetime
 import time
-from typing import Any
 import uuid
+from datetime import UTC, datetime
+from typing import Any
 
 from app.core.logging import logger
 from app.orchestration.errors import (
-    ActionExecutionFailedError,
     InvalidApprovalError,
-    MaxStepsExceededError,
-    PromptInjectionDetectedError,
     RequestCancelledError,
     TenantSecurityViolationError,
     UnauthorizedAgentCallError,
-    UnsafeTransitionError,
 )
 from app.orchestration.events import OrchestrationEventType, event_recorder
 from app.orchestration.executor import (
@@ -29,12 +25,10 @@ from app.orchestration.limits import (
     enforce_agent_call_limit,
     enforce_execution_timeout,
     enforce_step_limit,
-    get_orchestration_limits,
 )
 from app.orchestration.policies import SafeTransitionPolicy, SecurityPolicy
 from app.orchestration.registry import is_agent_registered, normalize_agent_name
 from app.orchestration.state import OrchestrationState
-
 
 # Shared executor & event recorder
 executor = OrchestrationAgentExecutor(event_recorder=event_recorder)
@@ -415,7 +409,6 @@ async def approval_check_node(state: OrchestrationState) -> dict[str, Any]:
     from agents.action.approval import (
         compute_payload_hash,
         create_approval_expiry,
-        is_approval_expired,
         validate_approval_binding,
     )
 
@@ -590,10 +583,11 @@ async def audit_node(state: OrchestrationState) -> dict[str, Any]:
     session = state.get("session")
     if session:
         try:
-            from app.models.audit_log import AuditLog
-            from uuid import UUID
             import hashlib
             import json
+            from uuid import UUID
+
+            from app.models.audit_log import AuditLog
 
             org_id = UUID(state["organization_id"])
             user_id = UUID(state["user_id"]) if state.get("user_id") and state["user_id"] != "anonymous" else None

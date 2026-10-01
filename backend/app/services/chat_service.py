@@ -4,7 +4,6 @@ Coordinates conversational interactions, multi-agent orchestration invocation,
 chat history persistence, citations, and human approvals.
 """
 
-from typing import Any
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession

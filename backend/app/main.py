@@ -1,11 +1,12 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from app.core.config import settings
-from app.core.logging import setup_logging, logger
-from app.core.middleware import RequestTraceMiddleware
-from app.core.exceptions import BaseAppException
+
 from app.api.router import api_router
+from app.core.config import settings
+from app.core.exceptions import BaseAppException
+from app.core.logging import logger, setup_logging
+from app.core.middleware import RequestTraceMiddleware
 
 setup_logging()
 
@@ -22,8 +23,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
 )
 
 # Global Exception Handler
@@ -48,6 +49,13 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 @app.on_event("startup")
 async def startup_event():
     logger.info("server_startup", environment=settings.ENVIRONMENT)
+    if settings.ENVIRONMENT == "production":
+        if settings.SECRET_KEY in ("default-insecure-secret-key-override-in-env", "jwt-secret-key-omniagent"):
+            raise RuntimeError("SECRET_KEY must be set via environment variable in production")
+        if settings.JWT_SECRET in ("default-insecure-secret-key-override-in-env", "jwt-secret-key-omniagent"):
+            raise RuntimeError("JWT_SECRET must be set via environment variable in production")
+        if settings.SECRET_KEY == settings.JWT_SECRET:
+            raise RuntimeError("SECRET_KEY and JWT_SECRET must not be equal in production environment")
 
 @app.on_event("shutdown")
 async def shutdown_event():

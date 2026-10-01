@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends
+
 from app.dependencies.auth import get_current_user
 from app.models.user import User
-from app.services.multimodal_service import MultimodalService
-from app.schemas.multimodal import MultimodalAnalysisRequest, MultimodalAnalysisResponse
 from app.schemas.common import ResponseEnvelope
+from app.schemas.multimodal import MultimodalAnalysisRequest, MultimodalAnalysisResponse
+from app.services.multimodal_service import MultimodalService
 
 router = APIRouter(prefix="/multimodal", tags=["Multimodal"])
 

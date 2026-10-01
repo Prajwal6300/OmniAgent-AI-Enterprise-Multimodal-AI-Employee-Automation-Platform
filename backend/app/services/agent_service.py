@@ -1,11 +1,11 @@
-import uuid
-from typing import Optional
 from uuid import UUID
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.repositories.agent_repository import AgentRepository
-from app.models.agent_run import AgentRun
-from app.schemas.agent import AgentRunRequest, SupervisorAnalyzeRequest, SupervisorDecision
+
 from agents.supervisor import SupervisorAgent
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.agent_run import AgentRun
+from app.repositories.agent_repository import AgentRepository
+from app.schemas.agent import AgentRunRequest, SupervisorAnalyzeRequest, SupervisorDecision
 
 
 class AgentService:
@@ -29,7 +29,7 @@ class AgentService:
         user_id: UUID,
         org_id: UUID,
         request: SupervisorAnalyzeRequest,
-        request_id: Optional[str] = None
+        request_id: str | None = None
     ) -> SupervisorDecision:
         """
         Executes Supervisor Agent intent classification, capability mapping,

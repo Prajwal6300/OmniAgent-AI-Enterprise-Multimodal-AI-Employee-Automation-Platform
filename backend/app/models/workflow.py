@@ -1,8 +1,10 @@
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from datetime import UTC, datetime
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
+
 from app.db.base import Base
 
 
@@ -18,8 +20,8 @@ class Workflow(Base):
     trigger_config = Column(JSONB, default=dict, nullable=False)
     graph_definition = Column(JSONB, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
 
     runs = relationship("WorkflowRun", back_populates="workflow", cascade="all, delete-orphan")
 
@@ -50,7 +52,7 @@ class WorkflowRun(Base):
     current_step = Column(String(100), nullable=True, default="1")
     input_payload = Column(JSONB, default=dict, nullable=False)
     output_payload = Column(JSONB, nullable=True)
-    started_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    started_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     finished_at = Column(DateTime(timezone=True), nullable=True)
     error_details = Column(Text, nullable=True)
 

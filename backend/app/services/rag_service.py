@@ -1,12 +1,12 @@
-from typing import Optional
 from uuid import UUID
-from fastapi import HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from agents.rag.agent import RAGAgent
 from agents.rag.embeddings import get_embedding_provider
 from agents.rag.retriever import DatabaseVectorRetriever
 from agents.rag.schemas import RAGResponse
+from fastapi import HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.config import settings
 from app.core.logging import logger
 from app.models.agent_run import AgentRun
@@ -37,9 +37,9 @@ class RAGService:
         user_id: UUID,
         org_id: UUID,
         question: str,
-        document_id: Optional[str] = None,
-        top_k: Optional[int] = None,
-        request_id: Optional[str] = None
+        document_id: str | None = None,
+        top_k: int | None = None,
+        request_id: str | None = None
     ) -> RAGResponse:
         """
         Executes tenant-isolated semantic search and grounded answer generation.

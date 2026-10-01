@@ -1,8 +1,11 @@
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import Column, String, DateTime, ForeignKey, Text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from datetime import UTC, datetime
+
+from sqlalchemy import Column, DateTime, ForeignKey, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+
 from app.db.base import Base
+
 
 class Approval(Base):
     __tablename__ = "approvals"
@@ -21,4 +24,4 @@ class Approval(Base):
     decision_reason = Column(Text, nullable=True)
     decided_at = Column(DateTime(timezone=True), nullable=True)
     signature_hmac = Column(String(128), nullable=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)

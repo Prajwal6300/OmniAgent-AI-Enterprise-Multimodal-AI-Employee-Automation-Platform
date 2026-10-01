@@ -1,35 +1,36 @@
 from datetime import datetime
+from typing import Any
 from uuid import UUID
-from typing import Optional, Dict, Any, List
+
 from pydantic import BaseModel, Field
 
 
 class WorkflowCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
+    description: str | None = None
     trigger_type: str = Field(default="MANUAL")
-    trigger_config: Dict[str, Any] = Field(default_factory=dict)
-    graph_definition: Dict[str, Any] = Field(default_factory=dict)
+    trigger_config: dict[str, Any] = Field(default_factory=dict)
+    graph_definition: dict[str, Any] = Field(default_factory=dict)
     is_active: bool = True
 
 
 class WorkflowUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    trigger_type: Optional[str] = None
-    trigger_config: Optional[Dict[str, Any]] = None
-    graph_definition: Optional[Dict[str, Any]] = None
-    is_active: Optional[bool] = None
+    name: str | None = None
+    description: str | None = None
+    trigger_type: str | None = None
+    trigger_config: dict[str, Any] | None = None
+    graph_definition: dict[str, Any] | None = None
+    is_active: bool | None = None
 
 
 class WorkflowRead(BaseModel):
     id: UUID
     organization_id: UUID
     name: str
-    description: Optional[str] = None
+    description: str | None = None
     trigger_type: str
-    trigger_config: Dict[str, Any] = Field(default_factory=dict)
-    graph_definition: Dict[str, Any] = Field(default_factory=dict)
+    trigger_config: dict[str, Any] = Field(default_factory=dict)
+    graph_definition: dict[str, Any] = Field(default_factory=dict)
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -39,7 +40,7 @@ class WorkflowRead(BaseModel):
 
 
 class WorkflowRunCreate(BaseModel):
-    input_payload: Dict[str, Any] = Field(default_factory=dict)
+    input_payload: dict[str, Any] = Field(default_factory=dict)
 
 
 class WorkflowRunRead(BaseModel):
@@ -47,12 +48,12 @@ class WorkflowRunRead(BaseModel):
     workflow_id: UUID
     organization_id: UUID
     status: str
-    current_step: Optional[str] = None
-    input_payload: Dict[str, Any] = Field(default_factory=dict)
-    output_payload: Optional[Dict[str, Any]] = None
+    current_step: str | None = None
+    input_payload: dict[str, Any] = Field(default_factory=dict)
+    output_payload: dict[str, Any] | None = None
     started_at: datetime
-    finished_at: Optional[datetime] = None
-    error_details: Optional[str] = None
+    finished_at: datetime | None = None
+    error_details: str | None = None
 
     class Config:
         from_attributes = True

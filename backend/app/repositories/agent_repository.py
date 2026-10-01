@@ -1,8 +1,10 @@
 from uuid import UUID
-from typing import List, Optional
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.agent_run import AgentRun, ToolCall
+
 
 class AgentRepository:
     def __init__(self, session: AsyncSession):
@@ -13,7 +15,7 @@ class AgentRepository:
         await self.session.flush()
         return run
 
-    async def get_run(self, run_id: UUID) -> Optional[AgentRun]:
+    async def get_run(self, run_id: UUID) -> AgentRun | None:
         stmt = select(AgentRun).where(AgentRun.id == run_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()

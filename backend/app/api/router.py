@@ -1,8 +1,19 @@
 from fastapi import APIRouter
+
 from app.api.v1 import (
-    auth, users, chat, documents, multimodal,
-    agents, workflows, approvals, notifications,
-    integrations, analytics, health, orchestration
+    agents,
+    analytics,
+    approvals,
+    auth,
+    chat,
+    documents,
+    health,
+    integrations,
+    multimodal,
+    notifications,
+    orchestration,
+    users,
+    workflows,
 )
 
 api_router = APIRouter()

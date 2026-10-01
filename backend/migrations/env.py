@@ -1,12 +1,12 @@
+import os
 from logging.config import fileConfig
+
+from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine import Connection
-from sqlalchemy import event
-from alembic import context
-import os
 
+import app.models  # noqa
 from app.db.base import Base
-import app.models # noqa
 
 config = context.config
 if config.config_file_name is not None:

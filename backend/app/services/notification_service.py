@@ -1,6 +1,9 @@
 from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.notification import Notification
+
 
 class NotificationService:
     def __init__(self, session: AsyncSession):

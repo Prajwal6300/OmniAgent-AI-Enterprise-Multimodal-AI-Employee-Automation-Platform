@@ -1,5 +1,7 @@
 from uuid import UUID
+
 from sqlalchemy import Select
+
 
 class TenantFilter:
     @staticmethod

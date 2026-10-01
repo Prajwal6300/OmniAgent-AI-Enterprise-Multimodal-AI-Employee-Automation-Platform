@@ -1,10 +1,13 @@
-import hmac
 import hashlib
+import hmac
+from datetime import UTC, datetime
 from uuid import UUID
-from datetime import datetime, timezone
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.approval import Approval
+
 from app.core.config import settings
+from app.models.approval import Approval
+
 
 class ApprovalService:
     def __init__(self, session: AsyncSession):
@@ -18,7 +21,7 @@ class ApprovalService:
         approval.status = decision
         approval.decided_by = user_id
         approval.decision_reason = reason
-        approval.decided_at = datetime.now(timezone.utc)
+        approval.decided_at = datetime.now(UTC)
         
         sig = hmac.new(
             settings.SECRET_KEY.encode(),

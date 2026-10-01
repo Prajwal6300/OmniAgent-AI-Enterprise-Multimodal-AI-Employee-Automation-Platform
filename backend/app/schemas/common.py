@@ -1,16 +1,17 @@
-from typing import Generic, TypeVar, Optional, List
+from typing import Generic, TypeVar
+
 from pydantic import BaseModel
 
 T = TypeVar("T")
 
 class ResponseEnvelope(BaseModel, Generic[T]):
     success: bool = True
-    data: Optional[T] = None
-    message: Optional[str] = None
-    error: Optional[dict] = None
+    data: T | None = None
+    message: str | None = None
+    error: dict | None = None
 
 class PaginatedResponse(BaseModel, Generic[T]):
-    items: List[T]
+    items: list[T]
     total: int
     page: int
     size: int

@@ -3,17 +3,17 @@ OmniAgent AI — Database Agent API Schemas
 """
 
 from agents.database.schemas import (
-    DataIntent,
     DatabaseQueryRequest,
     DatabaseResponse,
+    DataIntent,
     GeneratedQuery,
     QueryPlan,
 )
 
 __all__ = [
+    "DataIntent",
     "DatabaseQueryRequest",
     "DatabaseResponse",
-    "DataIntent",
-    "QueryPlan",
     "GeneratedQuery",
+    "QueryPlan",
 ]

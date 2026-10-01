@@ -4,21 +4,20 @@ Maintains the centralized, immutable allowlist of authorized agent classes.
 Rejects dynamic code loading, unknown agents, and arbitrary imports.
 """
 
-from typing import Any, Type
+from typing import Any
 
-from agents.supervisor.agent import SupervisorAgent
+from agents.action.agent import ActionAgent
+from agents.database.agent import DatabaseAgent
 from agents.document.agent import DocumentAgent
 from agents.rag.agent import RAGAgent
-from agents.database.agent import DatabaseAgent
-from agents.vision.agent import VisionAgent
 from agents.reasoning.agent import ReasoningAgent
-from agents.action.agent import ActionAgent
+from agents.supervisor.agent import SupervisorAgent
+from agents.vision.agent import VisionAgent
 
 from app.orchestration.errors import UnauthorizedAgentCallError
 
-
 # Centralized, static allowlist of authorized agents
-AGENT_REGISTRY: dict[str, Type[Any]] = {
+AGENT_REGISTRY: dict[str, type[Any]] = {
     "supervisor": SupervisorAgent,
     "supervisor_agent": SupervisorAgent,
     "document_agent": DocumentAgent,
@@ -66,7 +65,7 @@ def is_agent_registered(agent_name: str) -> bool:
     return clean in AGENT_REGISTRY
 
 
-def get_agent_class(agent_name: str) -> Type[Any]:
+def get_agent_class(agent_name: str) -> type[Any]:
     """
     Retrieves the registered agent class.
     Raises UnauthorizedAgentCallError if the agent is unknown or unlisted.

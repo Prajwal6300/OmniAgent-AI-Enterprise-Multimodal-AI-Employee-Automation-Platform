@@ -1,15 +1,15 @@
-from typing import Any, List, Optional
-from uuid import UUID
-from datetime import datetime, UTC
-from sqlalchemy import select, delete
+from datetime import UTC, datetime
+from typing import Any
+
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging import logger
 from app.models.document import Document, DocumentChunk
 from app.services.rag.embeddings.factory import EmbeddingFactory
 from app.services.rag.ingestion.chunker import TextChunker
 from app.services.rag.ingestion.loader import DocumentLoader
 from app.services.rag.ingestion.metadata import MetadataExtractor
-from app.core.logging import logger
 
 
 class IngestionPipeline:
@@ -45,9 +45,9 @@ class RAGIngestionPipeline:
     async def index_document(
         self,
         document: Document,
-        pages: Optional[List[dict[str, Any]]] = None,
-        sections: Optional[List[dict[str, Any]]] = None,
-        raw_text: Optional[str] = None
+        pages: list[dict[str, Any]] | None = None,
+        sections: list[dict[str, Any]] | None = None,
+        raw_text: str | None = None
     ) -> int:
         """
         Indexes a document into pgvector chunks.
