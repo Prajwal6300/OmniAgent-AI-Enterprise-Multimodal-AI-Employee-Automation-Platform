@@ -6,13 +6,13 @@ downstream agent execution, and audit logging for the Reasoning Agent.
 
 from uuid import UUID
 
-from agents.reasoning.agent import ReasoningAgent
-from agents.reasoning.executor import InternalAgentExecutor
-from agents.reasoning.schemas import ReasoningResponse
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.reasoning.agent import ReasoningAgent
+from app.agents.reasoning.executor import InternalAgentExecutor
+from app.agents.reasoning.schemas import ReasoningResponse
 from app.core.config import settings
 from app.core.logging import logger
 from app.models.agent_run import AgentRun

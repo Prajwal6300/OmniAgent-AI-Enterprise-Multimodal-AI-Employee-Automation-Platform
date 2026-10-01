@@ -1,12 +1,12 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from agents.document.agent import DocumentAgent
-from agents.document.schemas import DocumentAnalysisResult
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.document.agent import DocumentAgent
+from app.agents.document.schemas import DocumentAnalysisResult
 from app.core.config import settings
 from app.core.logging import logger
 from app.models.document import Document

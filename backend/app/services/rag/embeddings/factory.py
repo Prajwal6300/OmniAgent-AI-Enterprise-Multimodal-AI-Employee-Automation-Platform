@@ -1,5 +1,4 @@
-from agents.rag.embeddings import OpenAIEmbeddingProvider
-
+from app.agents.rag.embeddings import OpenAIEmbeddingProvider
 from app.core.config import settings
 
 

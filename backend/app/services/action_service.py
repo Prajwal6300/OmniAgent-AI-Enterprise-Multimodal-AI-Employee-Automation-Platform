@@ -7,24 +7,24 @@ approval lifecycle transitions, and audit records.
 from datetime import UTC, datetime
 from uuid import UUID
 
-from agents.action.agent import ActionAgent
-from agents.action.approval import (
+from fastapi import HTTPException, status
+from sqlalchemy import desc, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.agents.action.agent import ActionAgent
+from app.agents.action.approval import (
     compute_approval_signature,
     compute_payload_hash,
     is_approval_expired,
 )
-from agents.action.schemas import (
+from app.agents.action.schemas import (
     ActionContext,
     ActionRequest,
     ActionResult,
     ActionStatus,
     RiskLevel,
 )
-from agents.action.security import ActionSecurityGuard
-from fastapi import HTTPException, status
-from sqlalchemy import desc, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.agents.action.security import ActionSecurityGuard
 from app.core.logging import logger
 from app.models.action import ActionApproval, ActionRecord
 from app.schemas.action import (

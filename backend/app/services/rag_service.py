@@ -1,13 +1,13 @@
 from uuid import UUID
 
-from agents.rag.agent import RAGAgent
-from agents.rag.embeddings import get_embedding_provider
-from agents.rag.retriever import DatabaseVectorRetriever
-from agents.rag.schemas import RAGResponse
 from fastapi import HTTPException, status
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.rag.agent import RAGAgent
+from app.agents.rag.embeddings import get_embedding_provider
+from app.agents.rag.retriever import DatabaseVectorRetriever
+from app.agents.rag.schemas import RAGResponse
 from app.core.config import settings
 from app.core.logging import logger
 from app.models.agent_run import AgentRun

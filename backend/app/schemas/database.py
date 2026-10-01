@@ -2,7 +2,7 @@
 OmniAgent AI — Database Agent API Schemas
 """
 
-from agents.database.schemas import (
+from app.agents.database.schemas import (
     DatabaseQueryRequest,
     DatabaseResponse,
     DataIntent,

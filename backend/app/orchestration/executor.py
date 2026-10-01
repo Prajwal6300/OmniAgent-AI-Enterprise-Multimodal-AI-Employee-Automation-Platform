@@ -152,7 +152,7 @@ class OrchestrationAgentExecutor:
         context = dict(state.get("context") or {})
 
         if agent_name == "supervisor":
-            from agents.supervisor.agent import SupervisorAgent
+            from app.agents.supervisor.agent import SupervisorAgent
             supervisor = SupervisorAgent()
             res = await supervisor.analyze(
                 message=prompt,
@@ -165,7 +165,7 @@ class OrchestrationAgentExecutor:
             return res.model_dump() if hasattr(res, "model_dump") else res
 
         elif agent_name == "rag_agent":
-            from agents.rag.agent import RAGAgent
+            from app.agents.rag.agent import RAGAgent
             rag = RAGAgent()
             doc_id = context.get("document_id")
             res = await rag.query(
@@ -179,7 +179,7 @@ class OrchestrationAgentExecutor:
             return res.model_dump() if hasattr(res, "model_dump") else res
 
         elif agent_name == "database_agent":
-            from agents.database.agent import DatabaseAgent
+            from app.agents.database.agent import DatabaseAgent
             db_agent = DatabaseAgent(session=session)
             res = await db_agent.query(
                 question=prompt,
@@ -192,7 +192,7 @@ class OrchestrationAgentExecutor:
             return res.model_dump() if hasattr(res, "model_dump") else res
 
         elif agent_name == "vision_agent":
-            from agents.vision.agent import VisionAgent
+            from app.agents.vision.agent import VisionAgent
             vision = VisionAgent()
             # Check attachments for image bytes or path
             image_id = context.get("image_id", "default_img")
@@ -227,7 +227,7 @@ class OrchestrationAgentExecutor:
             return res.model_dump() if hasattr(res, "model_dump") else res
 
         elif agent_name == "document_agent":
-            from agents.document.agent import DocumentAgent
+            from app.agents.document.agent import DocumentAgent
             doc_agent = DocumentAgent()
             doc_id = context.get("document_id", "default_doc")
             file_bytes = context.get("file_bytes")
@@ -260,7 +260,7 @@ class OrchestrationAgentExecutor:
             return res.model_dump() if hasattr(res, "model_dump") else res
 
         elif agent_name == "reasoning_agent":
-            from agents.reasoning.agent import ReasoningAgent
+            from app.agents.reasoning.agent import ReasoningAgent
             reasoning = ReasoningAgent()
             res = await reasoning.analyze(
                 question=prompt,
@@ -275,8 +275,8 @@ class OrchestrationAgentExecutor:
             return res.model_dump() if hasattr(res, "model_dump") else res
 
         elif agent_name == "action_agent":
-            from agents.action.agent import ActionAgent
-            from agents.action.schemas import ActionContext, ActionRequest
+            from app.agents.action.agent import ActionAgent
+            from app.agents.action.schemas import ActionContext, ActionRequest
             action_agent = ActionAgent(session=session)
 
             action_type = state.get("action_type") or context.get("action_type") or "send_notification"

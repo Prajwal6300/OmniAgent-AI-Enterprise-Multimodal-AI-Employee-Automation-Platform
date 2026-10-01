@@ -337,8 +337,8 @@ async def reasoning_node(state: OrchestrationState) -> dict[str, Any]:
 
 async def action_node(state: OrchestrationState) -> dict[str, Any]:
     """Node 8: Prepares action request, checks risk policy, evaluates approval necessity."""
-    from agents.action.approval import classify_action_risk, requires_approval
-    from agents.action.schemas import ActionType
+    from app.agents.action.approval import classify_action_risk, requires_approval
+    from app.agents.action.schemas import ActionType
 
     # Infer action type if not explicitly set
     user_msg = state.get("user_message", "").lower()
@@ -406,7 +406,7 @@ async def action_node(state: OrchestrationState) -> dict[str, Any]:
 
 async def approval_check_node(state: OrchestrationState) -> dict[str, Any]:
     """Node 9: Human-in-the-loop gate. Pauses if unapproved, resumes if valid token present."""
-    from agents.action.approval import (
+    from app.agents.action.approval import (
         compute_payload_hash,
         create_approval_expiry,
         validate_approval_binding,

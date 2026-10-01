@@ -1,9 +1,9 @@
 from uuid import UUID
 
-from agents.supervisor import SupervisorAgent
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.supervisor import SupervisorAgent
 from app.core.logging import logger
 from app.models.agent_run import AgentRun
 from app.repositories.agent_repository import AgentRepository

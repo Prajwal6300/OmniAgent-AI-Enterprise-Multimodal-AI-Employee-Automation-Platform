@@ -6,11 +6,11 @@ Coordinates workflow CRUD, tenant boundaries, validation, execution runs, and au
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from automation.engine.engine import WorkflowEngine
-from automation.validator import WorkflowValidationError, validate_workflow_definition
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.automation.engine.engine import WorkflowEngine
+from app.automation.validator import WorkflowValidationError, validate_workflow_definition
 from app.models.workflow import Workflow, WorkflowRun
 from app.repositories.workflow_repository import WorkflowRepository
 from app.schemas.workflow import WorkflowCreate, WorkflowRunCreate, WorkflowUpdate

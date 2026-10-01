@@ -6,10 +6,10 @@ SQLAlchemy database sessions, audit logging, and the Database Agent.
 
 from uuid import UUID
 
-from agents.database.agent import DatabaseAgent
-from agents.database.schemas import DatabaseQueryRequest, DatabaseResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.database.agent import DatabaseAgent
+from app.agents.database.schemas import DatabaseQueryRequest, DatabaseResponse
 from app.core.logging import logger
 from app.models.agent_run import AgentRun
 from app.repositories.agent_repository import AgentRepository

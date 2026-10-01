@@ -7,16 +7,16 @@ and Vision Agent execution across enterprise organizations.
 from datetime import UTC, datetime
 from uuid import UUID
 
-from agents.vision.agent import VisionAgent
-from agents.vision.preprocessing import (
-    safe_inspect_and_load,
-    validate_image_metadata,
-)
-from agents.vision.schemas import VisionAnalysisResult
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.vision.agent import VisionAgent
+from app.agents.vision.preprocessing import (
+    safe_inspect_and_load,
+    validate_image_metadata,
+)
+from app.agents.vision.schemas import VisionAnalysisResult
 from app.core.logging import logger
 from app.models.document import Document
 from app.repositories.document_repository import DocumentRepository

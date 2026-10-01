@@ -4,7 +4,7 @@ Production stack is OpenAI API + local heuristic term fusion.
 Cohere and sentence-transformers external rerankers have been removed.
 """
 
-from agents.rag.reranker import SimpleRelevanceReranker
+from app.agents.rag.reranker import SimpleRelevanceReranker
 
 
 class Reranker(SimpleRelevanceReranker):

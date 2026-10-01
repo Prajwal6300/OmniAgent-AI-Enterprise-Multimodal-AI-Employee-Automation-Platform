@@ -16,3 +16,4 @@ ignore = ["B008"]
 minversion = "7.0"
 addopts = "-ra -q --asyncio-mode=auto"
 testpaths = ["tests"]
+pythonpath = ["."]

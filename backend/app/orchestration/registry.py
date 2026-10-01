@@ -6,14 +6,13 @@ Rejects dynamic code loading, unknown agents, and arbitrary imports.
 
 from typing import Any
 
-from agents.action.agent import ActionAgent
-from agents.database.agent import DatabaseAgent
-from agents.document.agent import DocumentAgent
-from agents.rag.agent import RAGAgent
-from agents.reasoning.agent import ReasoningAgent
-from agents.supervisor.agent import SupervisorAgent
-from agents.vision.agent import VisionAgent
-
+from app.agents.action.agent import ActionAgent
+from app.agents.database.agent import DatabaseAgent
+from app.agents.document.agent import DocumentAgent
+from app.agents.rag.agent import RAGAgent
+from app.agents.reasoning.agent import ReasoningAgent
+from app.agents.supervisor.agent import SupervisorAgent
+from app.agents.vision.agent import VisionAgent
 from app.orchestration.errors import UnauthorizedAgentCallError
 
 # Centralized, static allowlist of authorized agents
