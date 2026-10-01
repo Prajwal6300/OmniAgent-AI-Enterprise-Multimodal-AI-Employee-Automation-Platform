@@ -63,13 +63,30 @@ services:
       dockerfile: backend/Dockerfile
     container_name: omniagent-worker
     restart: unless-stopped
-    command: ["celery", "-A", "app.workers", "worker", "--loglevel=info"]
+    command: ["celery", "-A", "app.workers.celery_app", "worker", "--loglevel=info"]
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/omniagent_db
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/1
       - STORAGE_PROVIDER=local
       - STORAGE_LOCAL_DIR=/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  beat:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: omniagent-beat
+    restart: unless-stopped
+    command: ["celery", "-A", "app.workers.celery_app", "beat", "--loglevel=info"]
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/omniagent_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
     depends_on:
       postgres:
         condition: service_healthy
