@@ -1,4 +1,4 @@
-from app.processing.ocr.engine import OCREngine
+from app.processing.ocr import OCREngine
 
 
 def test_ocr_engine():

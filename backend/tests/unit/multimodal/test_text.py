@@ -1,4 +1,4 @@
-from app.processing.text.processor import TextProcessor
+from app.processing.text import TextProcessor
 
 
 def test_text_processor_clean():
