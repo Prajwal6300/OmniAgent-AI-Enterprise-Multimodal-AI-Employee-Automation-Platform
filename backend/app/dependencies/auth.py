@@ -20,7 +20,9 @@ async def get_current_user(
         user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject")
-    except Exception:
+    except HTTPException:
+        raise
+    except (ValueError, TypeError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
     
     repo = UserRepository(session)

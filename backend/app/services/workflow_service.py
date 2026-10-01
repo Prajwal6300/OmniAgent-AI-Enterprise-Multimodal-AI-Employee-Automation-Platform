@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from automation.engine.engine import WorkflowEngine
-from automation.validator import validate_workflow_definition
+from automation.validator import WorkflowValidationError, validate_workflow_definition
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,7 +29,7 @@ class WorkflowService:
             defn = {"trigger": {"type": payload.trigger_type}, "steps": []}
         try:
             validated_defn = validate_workflow_definition(defn)
-        except Exception as exc:
+        except (WorkflowValidationError, ValueError, TypeError) as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid workflow definition: {exc!s}",
@@ -76,7 +76,7 @@ class WorkflowService:
         if payload.graph_definition is not None:
             try:
                 wf.graph_definition = validate_workflow_definition(payload.graph_definition)
-            except Exception as exc:
+            except (WorkflowValidationError, ValueError, TypeError) as exc:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Invalid workflow definition: {exc!s}",

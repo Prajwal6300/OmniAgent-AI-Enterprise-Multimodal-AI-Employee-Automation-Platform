@@ -1,5 +1,6 @@
-from typing import Dict, Any
+from typing import Any
+
 
 class ImageProcessor:
-    def preprocess(self, image_path: str) -> Dict[str, Any]:
+    def preprocess(self, image_path: str) -> dict[str, Any]:
         return {"status": "preprocessed", "path": image_path}

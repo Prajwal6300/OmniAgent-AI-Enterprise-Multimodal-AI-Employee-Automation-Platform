@@ -3,12 +3,12 @@ OmniAgent AI — Orchestration Reliability & Limit Enforcement Tests
 """
 
 import time
+
 import pytest
 from app.orchestration.errors import (
     ExecutionTimeoutError,
     MaxAgentCallsExceededError,
     MaxStepsExceededError,
-    RequestCancelledError,
 )
 from app.orchestration.graph import Orchestrator
 from app.orchestration.limits import (

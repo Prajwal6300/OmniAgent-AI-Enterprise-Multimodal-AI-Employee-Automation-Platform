@@ -1,5 +1,6 @@
-from typing import Dict, Any
+from typing import Any
+
 
 class DocxParser:
-    def parse(self, file_path: str) -> Dict[str, Any]:
+    def parse(self, file_path: str) -> dict[str, Any]:
         return {"paragraphs": [], "metadata": {"file": file_path}}

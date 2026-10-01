@@ -7,18 +7,17 @@ The interface is designed to support deep neural cross-encoder models (e.g. Cohe
 without breaking existing pipeline contracts.
 """
 
-from abc import ABC, abstractmethod
-from typing import Any, List
 import re
+from abc import ABC, abstractmethod
+from typing import Any
 
 
 class BaseReranker(ABC):
     """Abstract base class for chunk reranking."""
 
     @abstractmethod
-    def rerank(self, query: str, candidate_chunks: List[Any], top_k: int = 5) -> List[Any]:
+    def rerank(self, query: str, candidate_chunks: list[Any], top_k: int = 5) -> list[Any]:
         """Rerank candidate chunks according to query relevance."""
-        pass
 
 
 class SimpleRelevanceReranker(BaseReranker):
@@ -28,7 +27,7 @@ class SimpleRelevanceReranker(BaseReranker):
     initial vector similarity to prioritize high-precision passages.
     """
 
-    def rerank(self, query: str, candidate_chunks: List[Any], top_k: int = 5) -> List[Any]:
+    def rerank(self, query: str, candidate_chunks: list[Any], top_k: int = 5) -> list[Any]:
         if not candidate_chunks:
             return []
 

@@ -12,7 +12,6 @@ export default function AppLayout() {
     { name: 'Multimodal Chat', path: '/chat', icon: MessageSquare },
     { name: 'Documents', path: '/documents', icon: FileText },
     { name: 'Image Analysis', path: '/image-analysis', icon: Radio },
-    { name: 'Agents', path: '/agents', icon: Bot },
     { name: 'Workflows', path: '/workflows', icon: Workflow },
     { name: 'Approvals', path: '/approvals', icon: CheckCircle2 },
     { name: 'Agent Runs', path: '/agent-runs', icon: Network },

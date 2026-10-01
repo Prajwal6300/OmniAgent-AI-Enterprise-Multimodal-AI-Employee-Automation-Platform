@@ -14,7 +14,6 @@ from agents.reasoning.executor import (
     PROHIBITED_AGENTS,
     AgentExecutor,
     InternalAgentExecutor,
-    MockAgentExecutor,
 )
 from agents.reasoning.normalizer import (
     ConfidenceCalculator,
@@ -23,8 +22,8 @@ from agents.reasoning.normalizer import (
 )
 from agents.reasoning.providers import (
     BaseReasoningLLMProvider,
+    DeterministicReasoningProvider,
     HybridReasoningLLMProvider,
-    MockReasoningLLMProvider,
     classify_task_deterministically,
     get_default_reasoning_llm_provider,
 )
@@ -52,6 +51,7 @@ __all__ = [
     "ConfidenceCalculator",
     "ConflictDetector",
     "ConflictSeverity",
+    "DeterministicReasoningProvider",
     "Evidence",
     "EvidenceConflict",
     "EvidenceNormalizer",
@@ -60,8 +60,6 @@ __all__ = [
     "GroundingValidationError",
     "HybridReasoningLLMProvider",
     "InternalAgentExecutor",
-    "MockAgentExecutor",
-    "MockReasoningLLMProvider",
     "ReasoningAgent",
     "ReasoningAnalyzeRequest",
     "ReasoningError",

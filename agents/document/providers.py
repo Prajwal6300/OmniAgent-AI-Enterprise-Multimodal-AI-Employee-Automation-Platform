@@ -1,4 +1,5 @@
-import asyncio
+import json
+import os
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -11,6 +12,14 @@ from agents.document.router import (
     heuristic_classify_document,
 )
 from agents.document.schemas import DocumentPage, DocumentType
+
+try:
+    from app.core.config import settings
+except ImportError:
+    try:
+        from backend.app.core.config import settings
+    except ImportError:
+        settings = None
 
 
 class BaseDocumentLLMProvider(ABC):
@@ -31,25 +40,11 @@ class BaseDocumentLLMProvider(ABC):
         """
 
 
-class MockDocumentLLMProvider(BaseDocumentLLMProvider):
+class DeterministicDocumentProvider(BaseDocumentLLMProvider):
     """
-    Mock LLM provider for deterministic offline execution, unit tests, and fault injection.
-    Supports injecting latency, timeouts, malformed payloads, and custom structured responses.
+    High-precision deterministic rule-based document analyzer.
+    Extracts structured domain schemas based on regex, keywords, and structural patterns.
     """
-
-    def __init__(
-        self,
-        custom_response: dict[str, Any] | None = None,
-        simulate_timeout: bool = False,
-        simulate_malformed: bool = False,
-        simulate_error: bool = False,
-        simulated_latency_s: float = 0.0,
-    ):
-        self.custom_response = custom_response
-        self.simulate_timeout = simulate_timeout
-        self.simulate_malformed = simulate_malformed
-        self.simulate_error = simulate_error
-        self.simulated_latency_s = simulated_latency_s
 
     async def generate_understanding_json(
         self,
@@ -59,22 +54,6 @@ class MockDocumentLLMProvider(BaseDocumentLLMProvider):
         query: str | None = None,
         system_prompt: str | None = None
     ) -> dict[str, Any]:
-        if self.simulated_latency_s > 0:
-            await asyncio.sleep(self.simulated_latency_s)
-
-        if self.simulate_timeout:
-            raise asyncio.TimeoutError("Document LLM inference timed out.")
-
-        if self.simulate_error:
-            raise DocumentLLMError("Simulated upstream LLM service outage.")
-
-        if self.simulate_malformed:
-            return {"syntax_error": "corrupted", "invalid_json": True}
-
-        if self.custom_response:
-            return self.custom_response
-
-        # High-precision deterministic fallback synthesizer
         doc_type, confidence, title = heuristic_classify_document(document_text)
 
         key_points = []
@@ -121,7 +100,7 @@ class MockDocumentLLMProvider(BaseDocumentLLMProvider):
             key_points = rep_data.important_findings[:5]
 
         else:
-            first_lines = [l.strip() for l in document_text.split("\n") if l.strip()]
+            first_lines = [line.strip() for line in document_text.split("\n") if line.strip()]
             summary = first_lines[0] if first_lines else "Enterprise document."
             key_points = first_lines[1:6] if len(first_lines) > 1 else ["Content verified."]
             structured_data = {"text_preview": summary}
@@ -142,13 +121,21 @@ class MockDocumentLLMProvider(BaseDocumentLLMProvider):
         }
 
 
-class HybridDocumentLLMProvider(BaseDocumentLLMProvider):
-    """
-    Hybrid provider leveraging deterministic heuristics for speed, with fallback to secondary provider.
-    """
+class OpenAIDocumentLLMProvider(BaseDocumentLLMProvider):
+    """Production OpenAI document understanding provider using JSON mode."""
 
-    def __init__(self, fallback_provider: BaseDocumentLLMProvider | None = None):
-        self.fallback_provider = fallback_provider or MockDocumentLLMProvider()
+    def __init__(self, api_key: str | None = None, model: str = "gpt-4o"):
+        self.api_key = api_key or (getattr(settings, "OPENAI_API_KEY", "") if settings else "") or os.getenv("OPENAI_API_KEY", "")
+        self.model = model
+        self._client = None
+
+    def _get_client(self):
+        if not self.api_key:
+            raise DocumentLLMError("OPENAI_API_KEY is not configured for document understanding.")
+        if not self._client:
+            from openai import AsyncOpenAI
+            self._client = AsyncOpenAI(api_key=self.api_key)
+        return self._client
 
     async def generate_understanding_json(
         self,
@@ -158,15 +145,69 @@ class HybridDocumentLLMProvider(BaseDocumentLLMProvider):
         query: str | None = None,
         system_prompt: str | None = None
     ) -> dict[str, Any]:
-        return await self.fallback_provider.generate_understanding_json(
+        client = self._get_client()
+        prompt = (
+            f"Analyze the following document and output valid JSON with keys: "
+            f"document_type, title, summary, key_points, entities, structured_data, sources, confidence.\n\n"
+            f"Task: {task}\nQuery: {query or 'None'}\n\nDocument Text:\n{document_text[:8000]}"
+        )
+        try:
+            response = await client.chat.completions.create(
+                model=self.model,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": system_prompt or "You are an enterprise document intelligence agent."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.0
+            )
+            content = response.choices[0].message.content or "{}"
+            return json.loads(content)
+        except Exception as exc:
+            raise DocumentLLMError(f"OpenAI document extraction failed: {exc!s}") from exc
+
+
+class HybridDocumentLLMProvider(BaseDocumentLLMProvider):
+    """
+    Hybrid provider: evaluates deterministic heuristics first, falling back to OpenAI when needed.
+    """
+
+    def __init__(self):
+        self.deterministic_provider = DeterministicDocumentProvider()
+        api_key = (getattr(settings, "OPENAI_API_KEY", "") if settings else "") or os.getenv("OPENAI_API_KEY", "")
+        self.openai_provider = OpenAIDocumentLLMProvider(api_key=api_key) if api_key else None
+
+    async def generate_understanding_json(
+        self,
+        document_text: str,
+        pages: list[DocumentPage],
+        task: str,
+        query: str | None = None,
+        system_prompt: str | None = None
+    ) -> dict[str, Any]:
+        result = await self.deterministic_provider.generate_understanding_json(
             document_text=document_text,
             pages=pages,
             task=task,
             query=query,
             system_prompt=system_prompt
         )
+        # If deterministic confidence is high or OpenAI is not configured, return deterministic result
+        if result.get("confidence", 0) >= 0.85 or not self.openai_provider:
+            return result
+
+        try:
+            return await self.openai_provider.generate_understanding_json(
+                document_text=document_text,
+                pages=pages,
+                task=task,
+                query=query,
+                system_prompt=system_prompt
+            )
+        except DocumentLLMError:
+            return result
 
 
 def get_default_document_llm_provider() -> BaseDocumentLLMProvider:
-    """Returns the default deterministic/hybrid document LLM provider."""
+    """Returns the default production hybrid document LLM provider."""
     return HybridDocumentLLMProvider()

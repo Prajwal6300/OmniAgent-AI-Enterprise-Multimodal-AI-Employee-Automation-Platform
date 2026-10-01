@@ -5,30 +5,22 @@ approval lifecycle & payload binding, idempotency, fake providers, verification,
 and audit logging.
 """
 
-from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
 import uuid
-from uuid import UUID
+from datetime import datetime, timedelta, timezone
+
 import pytest
+from pydantic import ValidationError
 
 from agents.action.agent import ActionAgent
 from agents.action.approval import (
-    classify_action_risk,
     compute_payload_hash,
-    create_approval_expiry,
     is_approval_expired,
     requires_approval,
     validate_approval_binding,
 )
 from agents.action.exceptions import (
-    ActionError,
-    ActionExecutionError,
-    ActionExpiredError,
-    ActionNotConfiguredError,
-    ActionPermissionDeniedError,
     ActionSecurityError,
     ActionValidationError,
-    ActionVerificationError,
 )
 from agents.action.executor import (
     ActionExecutor,
@@ -39,22 +31,17 @@ from agents.action.executor import (
     SMTPEmailProvider,
 )
 from agents.action.idempotency import IdempotencyManager
-from agents.action.registry import ActionRegistry, action_registry
+from agents.action.registry import action_registry
 from agents.action.schemas import (
     ActionContext,
     ActionRequest,
     ActionResult,
     ActionStatus,
-    ActionType,
-    CreateReportInput,
     CreateTicketInput,
     RiskLevel,
     SendEmailInput,
-    SendNotificationInput,
 )
 from agents.action.security import ActionSecurityGuard
-from agents.action.verifier import ActionVerifier
-
 
 # ==============================================================================
 # Fixtures
@@ -149,7 +136,7 @@ def test_send_email_input_valid():
 
 
 def test_send_email_input_invalid_email():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         SendEmailInput(
             recipient="not-an-email",
             subject="Hello",
@@ -176,7 +163,7 @@ def test_create_ticket_priority_validation():
     )
     assert inp.priority == "HIGH"
 
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         CreateTicketInput(
             title="Invalid",
             description="Invalid priority test",
@@ -415,6 +402,26 @@ async def test_execute_ticket_with_approval_succeeds(action_agent, admin_context
     assert result.verified is True
     assert result.external_reference is not None
     assert "fake_ticket_" in result.external_reference
+
+
+@pytest.mark.asyncio
+async def test_high_risk_action_cannot_execute_without_approval(action_agent, admin_context):
+    """Proves that a HIGH-risk action strictly cannot execute without approval."""
+    req = ActionRequest(
+        action_type="send_email",
+        input={
+            "recipient": "all-company@example.com",
+            "subject": "Mass Notification",
+            "body": "System outage alert.",
+        },
+    )
+    # Without an approval token, execution must be halted
+    result = await action_agent.execute(req, admin_context)
+    assert result.requires_approval is True
+    assert result.status == ActionStatus.PENDING_APPROVAL.value
+    assert result.success is False
+    assert result.approval_id is not None
+    assert "Approval is required" in result.message
 
 
 # ==============================================================================

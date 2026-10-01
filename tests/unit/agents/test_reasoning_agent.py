@@ -12,16 +12,12 @@ from agents.reasoning.exceptions import (
     RecursionDepthExceededError,
     UnsafeAgentCallError,
 )
-from agents.reasoning.executor import (
-    MockAgentExecutor,
-)
 from agents.reasoning.normalizer import (
     ConfidenceCalculator,
     ConflictDetector,
     EvidenceNormalizer,
 )
 from agents.reasoning.providers import (
-    MockReasoningLLMProvider,
     classify_task_deterministically,
 )
 from agents.reasoning.schemas import (
@@ -31,6 +27,7 @@ from agents.reasoning.schemas import (
     EvidenceSourceType,
     ReasoningTaskType,
 )
+from tests.fixtures.mock_providers import MockAgentExecutor, MockReasoningLLMProvider
 
 # ============================================================================
 # 1. TASK CLASSIFICATION TESTS

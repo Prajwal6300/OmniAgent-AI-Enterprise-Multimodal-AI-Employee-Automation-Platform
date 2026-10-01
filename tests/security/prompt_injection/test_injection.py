@@ -1,5 +1,6 @@
 from agents.database.sql_guard import SQLGuard
 
+
 def test_sql_injection_guard():
     guard = SQLGuard()
     malicious = "SELECT * FROM users; DROP TABLE users; --"

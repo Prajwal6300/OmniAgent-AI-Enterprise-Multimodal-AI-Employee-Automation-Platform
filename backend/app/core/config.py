@@ -127,11 +127,10 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def check_production_secrets(self) -> "Settings":
-        if self.ENVIRONMENT == "production":
-            if self.SECRET_KEY == self.JWT_SECRET:
-                raise ValueError(
-                    "SECRET_KEY and JWT_SECRET must not be equal in production environment"
-                )
+        if self.ENVIRONMENT == "production" and self.SECRET_KEY == self.JWT_SECRET:
+            raise ValueError(
+                "SECRET_KEY and JWT_SECRET must not be equal in production environment"
+            )
         return self
 
 

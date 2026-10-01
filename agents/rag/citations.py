@@ -1,7 +1,7 @@
 import re
 from typing import Any
 
-from agents.rag.schemas import Citation
+from agents.rag.schemas import Citation, RetrievedChunk
 
 
 def _normalize_whitespace(text: str) -> str:
@@ -33,7 +33,7 @@ class CitationBuilder:
     def build_citations(
         self,
         answer: str,
-        chunks: list[RetrieievedChunk | dict[str, Any]],
+        chunks: list[RetrievedChunk | dict[str, Any]],
         fallback_answer: str = "I couldn't find enough information in the available documents to answer this.",
     ) -> list[Citation]:
         """
@@ -119,7 +119,7 @@ class CitationBuilder:
                     continue
                 content_norm = _normalize_whitespace(content)
                 # Check if any sentence/phrase from the chunk appears in the answer
-                answer_sents = re.split(r"[.!?]+", answer_norm)
+                re.split(r"[.!?]+", answer_norm)
                 chunk_sents = re.split(r"[.!?]+", content_norm)
                 # Check if any chunk sentence appears in answer
                 for cs in chunk_sents:

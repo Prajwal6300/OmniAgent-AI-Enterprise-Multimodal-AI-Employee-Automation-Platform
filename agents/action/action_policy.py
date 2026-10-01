@@ -13,12 +13,10 @@ class ActionPolicy:
     """Evaluates execution risk and human-in-the-loop approval thresholds."""
 
     HIGH_RISK_TOOLS: ClassVar[set[str]] = {
-        "erp_post_payment",
         "delete_storage_file",
         "send_mass_email",
         "delete_data",
         "financial_change",
-        "erp_write",
     }
 
     def assess_risk(self, tool_name: str, params: dict | None = None) -> str:

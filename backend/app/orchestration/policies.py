@@ -93,7 +93,7 @@ class SafeTransitionPolicy:
         if dst not in allowed and to_agent != "finalize" and to_agent != "end":
             raise UnsafeTransitionError(
                 f"Unauthorized agent transition attempted: '{src}' -> '{dst}'. "
-                f"Allowed transitions for '{src}': {sorted(list(allowed))}."
+                f"Allowed transitions for '{src}': {sorted(allowed)}."
             )
 
 

@@ -1,16 +1,16 @@
 import io
 import uuid
-import pytest
-from fastapi import HTTPException
-from reportlab.pdfgen import canvas
 
-from agents.document.agent import DocumentAgent
-from agents.document.providers import MockDocumentLLMProvider
-from agents.document.schemas import DocumentType
+import pytest
 from app.models.document import Document
 from app.schemas.document import DocumentAnalyzeRequest
 from app.services.document_service import DocumentService
 from app.services.storage_service import LocalStorageService, sanitize_filename
+from fastapi import HTTPException
+from reportlab.pdfgen import canvas
+
+from agents.document.agent import DocumentAgent
+from tests.fixtures.mock_providers import MockDocumentLLMProvider
 
 
 def make_blank_pdf(pages: int = 1) -> bytes:

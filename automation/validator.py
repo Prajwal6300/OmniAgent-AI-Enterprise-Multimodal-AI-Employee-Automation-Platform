@@ -5,7 +5,6 @@ Prohibits arbitrary code execution or unlisted agents/actions.
 """
 
 from typing import Any
-from pydantic import BaseModel, Field
 
 from automation.conditions.operators import OPERATORS
 from automation.limits import WORKFLOW_MAX_STEPS
@@ -38,7 +37,7 @@ def validate_workflow_definition(definition: dict[str, Any]) -> dict[str, Any]:
     t_type = trigger.get("type", "MANUAL").upper()
     if t_type not in ALLOWED_TRIGGERS:
         raise WorkflowValidationError(
-            f"Invalid trigger type '{t_type}'. Allowed triggers: {sorted(list(ALLOWED_TRIGGERS))}."
+            f"Invalid trigger type '{t_type}'. Allowed triggers: {sorted(ALLOWED_TRIGGERS)}."
         )
 
     # Validate Steps
@@ -57,14 +56,14 @@ def validate_workflow_definition(definition: dict[str, Any]) -> dict[str, Any]:
         stype = step.get("type", "").lower()
         if stype not in ALLOWED_STEP_TYPES:
             raise WorkflowValidationError(
-                f"Step {idx + 1}: Unsupported step type '{stype}'. Allowed: {sorted(list(ALLOWED_STEP_TYPES))}."
+                f"Step {idx + 1}: Unsupported step type '{stype}'. Allowed: {sorted(ALLOWED_STEP_TYPES)}."
             )
 
         if stype == "agent":
             ag = step.get("agent", "").lower()
             if ag not in ALLOWED_AGENTS:
                 raise WorkflowValidationError(
-                    f"Step {idx + 1}: Unauthorized agent '{ag}'. Allowed: {sorted(list(ALLOWED_AGENTS))}."
+                    f"Step {idx + 1}: Unauthorized agent '{ag}'. Allowed: {sorted(ALLOWED_AGENTS)}."
                 )
 
         elif stype == "condition":
@@ -80,7 +79,7 @@ def validate_workflow_definition(definition: dict[str, Any]) -> dict[str, Any]:
             act = step.get("action", "").lower()
             if act not in ALLOWED_ACTIONS:
                 raise WorkflowValidationError(
-                    f"Step {idx + 1}: Unsupported action '{act}'. Allowed: {sorted(list(ALLOWED_ACTIONS))}."
+                    f"Step {idx + 1}: Unsupported action '{act}'. Allowed: {sorted(ALLOWED_ACTIONS)}."
                 )
 
     return definition

@@ -235,8 +235,8 @@ class SupervisorAgent:
                 organization_id=organization_id,
                 request_id=request_id
             )
-        except Exception as exc:
-            raise DocumentProcessingError(f"Document Agent execution failed: {str(exc)}")
+        except Exception as exc:  # noqa: BLE001
+            raise DocumentProcessingError(f"Document Agent execution failed: {exc!s}")
 
     async def run_rag_agent(
         self,
@@ -247,7 +247,8 @@ class SupervisorAgent:
         conversation_id: str | None = None,
         top_k: int = 5,
         request_id: str | None = None,
-        retriever=None
+        retriever=None,
+        embedding_provider=None,
     ):
         """
         Directly delegates execution to the RAG Agent for knowledge search tasks.
@@ -256,7 +257,7 @@ class SupervisorAgent:
         from agents.rag.agent import RAGAgent
         from agents.rag.exceptions import RAGException
         try:
-            rag_agent = RAGAgent(retriever=retriever)
+            rag_agent = RAGAgent(retriever=retriever, embedding_provider=embedding_provider)
             return await rag_agent.query(
                 question=question,
                 document_id=document_id,
@@ -266,8 +267,8 @@ class SupervisorAgent:
                 top_k=top_k,
                 request_id=request_id
             )
-        except Exception as exc:
-            raise RAGException(f"RAG Agent execution failed: {str(exc)}")
+        except Exception as exc:  # noqa: BLE001
+            raise RAGException(f"RAG Agent execution failed: {exc!s}")
 
     async def run_action_agent(
         self,
@@ -310,7 +311,7 @@ class SupervisorAgent:
                 approval_id=approval_id,
             )
             return await action_agent.execute(request, context, session=session)
-        except Exception as exc:
-            raise ActionError(f"Action Agent execution failed: {str(exc)}", action_type=action_type)
+        except Exception as exc:  # noqa: BLE001
+            raise ActionError(f"Action Agent execution failed: {exc!s}", action_type=action_type)
 
 

@@ -1,10 +1,12 @@
-from typing import Dict, Any, Callable
+from collections.abc import Callable
+
 from tools.common.permissions import ToolPermissionGuard
 from tools.common.schemas import ToolExecutionRequest, ToolExecutionResult
 
+
 class ToolRegistry:
     def __init__(self):
-        self._tools: Dict[str, Callable] = {}
+        self._tools: dict[str, Callable] = {}
 
     def register(self, name: str, func: Callable):
         self._tools[name] = func
@@ -20,7 +22,7 @@ class ToolRegistry:
         try:
             res = await tool_fn(req.parameters)
             return ToolExecutionResult(success=True, data=res)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - tool runner boundary safely encapsulates tool failure
             return ToolExecutionResult(success=False, error=str(e))
 
 registry = ToolRegistry()

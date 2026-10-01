@@ -1,8 +1,8 @@
 import pytest
 
 from agents.supervisor.agent import SupervisorAgent
-from agents.supervisor.providers import MockLLMProvider
 from agents.supervisor.schemas import AgentTarget, TaskType
+from tests.fixtures.mock_providers import MockLLMProvider
 
 
 @pytest.fixture

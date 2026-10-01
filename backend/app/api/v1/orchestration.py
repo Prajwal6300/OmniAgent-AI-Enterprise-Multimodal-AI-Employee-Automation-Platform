@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db_session
 from app.models.user import User
+from app.orchestration.errors import OrchestrationError
 from app.orchestration.graph import Orchestrator
 from app.orchestration.state import (
     ActionDetail,
@@ -64,7 +65,7 @@ def _build_unified_response(state: dict[str, Any]) -> UnifiedChatResponse:
     agents_used = [
         s.agent for s in steps if s.agent not in ("supervisor", "start")
     ]
-    agents_used = sorted(list(set(agents_used)))
+    agents_used = sorted(set(agents_used))
 
     return UnifiedChatResponse(
         request_id=state.get("request_id", ""),
@@ -125,7 +126,7 @@ async def resume_orchestration(
             session=session,
         )
         return ResponseEnvelope(data=_build_unified_response(state))
-    except Exception as exc:
+    except (OrchestrationError, ValueError, KeyError, RuntimeError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
@@ -141,7 +142,7 @@ async def cancel_orchestration(
             organization_id=str(current_user.organization_id),
         )
         return ResponseEnvelope(data=_build_unified_response(state))
-    except Exception as exc:
+    except (OrchestrationError, ValueError, KeyError, RuntimeError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 

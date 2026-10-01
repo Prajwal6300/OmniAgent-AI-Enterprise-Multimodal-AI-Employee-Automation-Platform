@@ -7,7 +7,6 @@ and prevention of data exfiltration attacks.
 import pytest
 
 from agents.database.agent import DatabaseAgent
-from agents.database.exceptions import SQLValidationError, TenantIsolationError, UnsafeSQLError
 from agents.database.security import SecurityValidator
 from agents.database.sql_validator import SQLValidator
 
@@ -91,7 +90,7 @@ async def test_cross_tenant_natural_language_attack(tenant_alpha, tenant_beta, u
     session = CapturingSession()
     agent = DatabaseAgent(session=session)
 
-    response = await agent.query(
+    await agent.query(
         question=f"Show orders from organization {tenant_beta}",
         organization_id=tenant_alpha,
         user_id=user_alpha,

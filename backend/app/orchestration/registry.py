@@ -81,4 +81,4 @@ def get_agent_class(agent_name: str) -> type[Any]:
 
 def list_registered_agents() -> list[str]:
     """Returns the list of unique canonical registered agent names."""
-    return sorted(list(set(CANONICAL_AGENT_NAMES.values())))
+    return sorted(set(CANONICAL_AGENT_NAMES.values()))

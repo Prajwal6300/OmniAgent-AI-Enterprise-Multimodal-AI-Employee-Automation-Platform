@@ -11,8 +11,8 @@ from agents.supervisor.exceptions import (
 from agents.supervisor.graph import build_supervisor_graph
 from agents.supervisor.providers import (
     BaseLLMProvider,
+    DeterministicSupervisorProvider,
     HybridDeterministicProvider,
-    MockLLMProvider,
     get_default_llm_provider,
 )
 from agents.supervisor.router import (
@@ -38,10 +38,10 @@ __all__ = [
     "AgentTarget",
     "BaseLLMProvider",
     "DecisionValidationError",
+    "DeterministicSupervisorProvider",
     "HybridDeterministicProvider",
     "IntentClassificationError",
     "LLMProviderError",
-    "MockLLMProvider",
     "SupervisorAgent",
     "SupervisorAnalyzeData",
     "SupervisorAnalyzeRequest",

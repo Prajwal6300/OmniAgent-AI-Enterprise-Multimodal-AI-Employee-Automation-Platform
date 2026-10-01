@@ -137,7 +137,7 @@ class ChatService:
         agents_used = [
             s.agent for s in steps if s.agent not in ("supervisor", "start")
         ]
-        agents_used = sorted(list(set(agents_used)))
+        agents_used = sorted(set(agents_used))
 
         final_answer = orch_state.get("final_response") or "Analysis completed."
         status_str = orch_state.get("status", "COMPLETED")

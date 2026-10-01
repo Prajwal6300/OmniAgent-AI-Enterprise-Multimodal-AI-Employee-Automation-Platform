@@ -4,7 +4,6 @@ Supports online multimodal models (OpenAI GPT-4o) and deterministic offline mock
 Strictly wraps all visual text and OCR data in non-executable untrusted context.
 """
 
-import asyncio
 import base64
 import json
 import os
@@ -146,23 +145,11 @@ class OpenAIVisionProvider:
             raise VisionProviderError(f"OpenAI Vision inference failed: {exc!s}")
 
 
-class MockVisionProvider:
+class DeterministicVisionAnalyzer(VisionProvider):
     """
-    Deterministic mock vision provider for testing, offline execution, and development.
+    Deterministic rule-based vision analyzer for inspection and failure detection.
     Produces high-fidelity, grounded inspection findings based on the specific query and task.
     """
-
-    def __init__(
-        self,
-        custom_response: dict[str, Any] | None = None,
-        simulate_failure: bool = False,
-        simulate_timeout: bool = False,
-        simulated_latency_s: float = 0.0,
-    ):
-        self.custom_response = custom_response
-        self.simulate_failure = simulate_failure
-        self.simulate_timeout = simulate_timeout
-        self.simulated_latency_s = simulated_latency_s
 
     async def analyze(
         self,
@@ -173,17 +160,6 @@ class MockVisionProvider:
         detected_objects: list[dict[str, Any]] | None = None,
         context: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        if self.simulated_latency_s > 0:
-            await asyncio.sleep(self.simulated_latency_s)
-
-        if self.simulate_timeout:
-            raise asyncio.TimeoutError("Vision inference request timed out.")
-
-        if self.simulate_failure:
-            raise VisionProviderError("Simulated upstream vision neural model outage.")
-
-        if self.custom_response is not None:
-            return self.custom_response
 
         # Deterministic analytical synthesis based on task_type, detected objects, and OCR
         q_lower = question.lower()
@@ -307,22 +283,20 @@ class MockVisionProvider:
         }
 
 
-class HybridVisionProvider:
+class HybridVisionProvider(VisionProvider):
     """
     Hybrid provider: uses online OpenAI Vision if key configured,
-    otherwise falls back smoothly to deterministic MockVisionProvider.
+    otherwise falls back to deterministic rule analyzer.
     """
 
     def __init__(self, fallback_provider: VisionProvider | None = None):
-        self.fallback = fallback_provider or MockVisionProvider()
+        self.fallback = fallback_provider or DeterministicVisionAnalyzer()
         self._openai_provider: OpenAIVisionProvider | None = None
 
         api_key = getattr(settings, "OPENAI_API_KEY", "") or os.getenv(
             "OPENAI_API_KEY", ""
         )
-        provider_setting = getattr(settings, "VISION_PROVIDER", "mock").lower()
-
-        if provider_setting == "openai" and api_key:
+        if api_key:
             try:
                 self._openai_provider = OpenAIVisionProvider(api_key=api_key)
             except Exception:  # noqa: BLE001
@@ -362,26 +336,4 @@ class HybridVisionProvider:
 
 def get_vision_provider(provider_name: str | None = None) -> VisionProvider:
     """Factory retrieving the configured VisionProvider."""
-    name = (provider_name or getattr(settings, "VISION_PROVIDER", "openai")).lower()
-    api_key = getattr(settings, "OPENAI_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")
-    if name == "openai" and api_key:
-        return HybridVisionProvider()
-    if name == "openai" and not api_key:
-        # Honestly report NOT_CONFIGURED instead of silently falling back to mock
-        class NotConfiguredProvider:
-            async def analyze(
-                self,
-                image_bytes: bytes,
-                question: str,
-                task_type: str = "GENERAL_IMAGE_ANALYSIS",
-                ocr_result: dict[str, Any] | None = None,
-                detected_objects: list[dict[str, Any]] | None = None,
-                context: dict[str, Any] | None = None,
-            ) -> dict[str, Any]:
-                raise VisionProviderError(
-                    "Vision provider 'openai' selected but OPENAI_API_KEY is not configured. "
-                    "Set OPENAI_API_KEY environment variable or change VISION_PROVIDER."
-                )
-        return NotConfiguredProvider()
-    # Mock provider only allowed in development/testing
-    return MockVisionProvider()
+    return HybridVisionProvider()

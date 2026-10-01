@@ -4,7 +4,6 @@ Defines the abstract inference contracts, deterministic pattern planning,
 synthesis logic, and mock fault-injection providers for the Reasoning Agent.
 """
 
-import asyncio
 import re
 from abc import ABC, abstractmethod
 from typing import Any
@@ -185,43 +184,17 @@ class BaseReasoningLLMProvider(ABC):
         ...
 
 
-class MockReasoningLLMProvider(BaseReasoningLLMProvider):
+class DeterministicReasoningProvider(BaseReasoningLLMProvider):
     """
-    Mock reasoning provider for offline testing, deterministic evaluation,
-    and simulated edge-case responses.
+    Deterministic reasoning provider leveraging rule-based task planning,
+    evidence conflict detection, and grounded template synthesis.
     """
-
-    def __init__(
-        self,
-        custom_plan: dict[str, Any] | None = None,
-        custom_synthesis: dict[str, Any] | None = None,
-        simulate_timeout: bool = False,
-        simulate_error: bool = False,
-        simulated_latency_s: float = 0.0,
-    ):
-        self.custom_plan = custom_plan
-        self.custom_synthesis = custom_synthesis
-        self.simulate_timeout = simulate_timeout
-        self.simulate_error = simulate_error
-        self.simulated_latency_s = simulated_latency_s
 
     async def plan(
         self,
         user_question: str,
         context: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        if self.simulated_latency_s > 0:
-            await asyncio.sleep(self.simulated_latency_s)
-
-        if self.simulate_timeout:
-            raise asyncio.TimeoutError("Reasoning planning timed out.")
-
-        if self.simulate_error:
-            raise RuntimeError("Reasoning planning LLM service outage.")
-
-        if self.custom_plan:
-            return self.custom_plan
-
         task_type, agents, rationale = classify_task_deterministically(user_question)
         steps = [
             {
@@ -248,17 +221,6 @@ class MockReasoningLLMProvider(BaseReasoningLLMProvider):
         missing_information: list[str],
         context: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        if self.simulated_latency_s > 0:
-            await asyncio.sleep(self.simulated_latency_s)
-
-        if self.simulate_timeout:
-            raise asyncio.TimeoutError("Reasoning synthesis timed out.")
-
-        if self.simulate_error:
-            raise RuntimeError("Reasoning synthesis LLM service outage.")
-
-        if self.custom_synthesis:
-            return self.custom_synthesis
 
         # Deterministic grounded synthesis
         sections: list[str] = []
@@ -354,7 +316,7 @@ class HybridReasoningLLMProvider(BaseReasoningLLMProvider):
     """
 
     def __init__(self, fallback_provider: BaseReasoningLLMProvider | None = None):
-        self.fallback_provider = fallback_provider or MockReasoningLLMProvider()
+        self.fallback_provider = fallback_provider or DeterministicReasoningProvider()
 
     async def plan(
         self,

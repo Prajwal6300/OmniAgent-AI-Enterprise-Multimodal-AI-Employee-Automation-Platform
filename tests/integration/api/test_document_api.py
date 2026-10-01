@@ -1,14 +1,14 @@
 import io
 import uuid
-import pytest
-from httpx import ASGITransport, AsyncClient
-from reportlab.pdfgen import canvas
 
+import pytest
 from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db_session
 from app.main import app
 from app.models.document import Document
 from app.models.user import User
+from httpx import ASGITransport, AsyncClient
+from reportlab.pdfgen import canvas
 
 
 class InMemoryAsyncSession:
@@ -36,7 +36,7 @@ class InMemoryAsyncSession:
 
     async def execute(self, stmt):
         # Extract where conditions
-        stmt_str = str(stmt)
+        str(stmt)
         docs = list(self.documents.values())
 
         class Result:
@@ -52,11 +52,7 @@ class InMemoryAsyncSession:
                         return self._d
                 return Scalars(self._data)
 
-        # Basic query filtering for in-memory tests
-        matched = []
-        for d in docs:
-            # Check if this doc matches the query
-            matched.append(d)
+        matched = list(docs)
         return Result(matched)
 
 

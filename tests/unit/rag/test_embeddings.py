@@ -1,10 +1,13 @@
 import math
+
 import pytest
+
 from agents.rag.embeddings import (
-    DeterministicEmbeddingProvider,
-    MockEmbeddingProvider,
+    OpenAIEmbeddingProvider,
     get_embedding_provider,
 )
+from agents.rag.exceptions import EmbeddingError
+from tests.fixtures.embeddings import DeterministicEmbeddingProvider
 
 
 @pytest.mark.asyncio
@@ -40,7 +43,7 @@ async def test_deterministic_embedding_batch_documents():
 
 
 @pytest.mark.asyncio
-async def test_deterministic_embedding_semantic_proximity():
+async def test_deterministic_embedding_semantic_separation():
     provider = DeterministicEmbeddingProvider(dimension=1536)
     q_vec = await provider.embed_query("company leave policy vacation")
     rel_vec = await provider.embed_query("employees leave policy and annual vacation entitlement")
@@ -54,15 +57,13 @@ async def test_deterministic_embedding_semantic_proximity():
 
 
 @pytest.mark.asyncio
-async def test_mock_embedding_provider():
-    provider = MockEmbeddingProvider(dimension=1536)
-    vec = await provider.embed_query("any query")
-    assert len(vec) == 1536
-    assert all(v == 0.0 for v in vec)
+async def test_openai_embedding_not_configured_honestly():
+    provider = OpenAIEmbeddingProvider(api_key="")
+    with pytest.raises(EmbeddingError) as exc_info:
+        await provider.embed_query("any query")
+    assert "not configured" in str(exc_info.value).lower()
 
 
 def test_get_embedding_provider_factory():
-    p1 = get_embedding_provider("mock")
-    assert isinstance(p1, MockEmbeddingProvider)
-    p2 = get_embedding_provider("deterministic")
-    assert isinstance(p2, DeterministicEmbeddingProvider)
+    provider = get_embedding_provider()
+    assert isinstance(provider, OpenAIEmbeddingProvider)

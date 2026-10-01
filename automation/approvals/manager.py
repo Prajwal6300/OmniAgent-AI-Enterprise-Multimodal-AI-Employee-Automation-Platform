@@ -1,6 +1,7 @@
 from automation.approvals.policy import ApprovalPolicy
 from automation.approvals.risk import RiskEvaluator
 
+
 class ApprovalManager:
     def __init__(self):
         self.policy = ApprovalPolicy()

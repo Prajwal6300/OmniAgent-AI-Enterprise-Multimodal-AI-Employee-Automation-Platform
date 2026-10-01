@@ -1,9 +1,18 @@
-import asyncio
+import json
+import os
 from abc import ABC, abstractmethod
 from typing import Any
 
 from agents.supervisor.exceptions import LLMProviderError
 from agents.supervisor.router import deterministic_classify
+
+try:
+    from app.core.config import settings
+except ImportError:
+    try:
+        from backend.app.core.config import settings
+    except ImportError:
+        settings = None
 
 
 class BaseLLMProvider(ABC):
@@ -22,25 +31,8 @@ class BaseLLMProvider(ABC):
         """
 
 
-class MockLLMProvider(BaseLLMProvider):
-    """
-    Mock LLM provider for deterministic, offline testing and fault-injection simulations.
-    Supports injecting latency, timeouts, malformed outputs, and custom decision responses.
-    """
-
-    def __init__(
-        self,
-        custom_response: dict[str, Any] | None = None,
-        simulate_timeout: bool = False,
-        simulate_malformed: bool = False,
-        simulate_error: bool = False,
-        simulated_latency_s: float = 0.0,
-    ):
-        self.custom_response = custom_response
-        self.simulate_timeout = simulate_timeout
-        self.simulate_malformed = simulate_malformed
-        self.simulate_error = simulate_error
-        self.simulated_latency_s = simulated_latency_s
+class DeterministicSupervisorProvider(BaseLLMProvider):
+    """Deterministic fast-path provider evaluating rule-based intent classifiers."""
 
     async def generate_decision_json(
         self,
@@ -48,22 +40,6 @@ class MockLLMProvider(BaseLLMProvider):
         system_prompt: str,
         context: dict[str, Any] | None = None
     ) -> dict[str, Any]:
-        if self.simulated_latency_s > 0:
-            await asyncio.sleep(self.simulated_latency_s)
-
-        if self.simulate_timeout:
-            raise asyncio.TimeoutError("LLM inference timed out after timeout threshold.")
-
-        if self.simulate_error:
-            raise LLMProviderError("Simulated upstream LLM service outage.")
-
-        if self.simulate_malformed:
-            return {"corrupt": True, "syntax_error": None}
-
-        if self.custom_response:
-            return self.custom_response
-
-        # Fallback to deterministic classifier output formatted as dict
         decision = deterministic_classify(user_message)
         if decision:
             return decision.model_dump()
@@ -82,14 +58,55 @@ class MockLLMProvider(BaseLLMProvider):
         }
 
 
+class OpenAISupervisorProvider(BaseLLMProvider):
+    """Production OpenAI LLM provider using structured JSON routing."""
+
+    def __init__(self, api_key: str | None = None, model: str = "gpt-4o"):
+        self.api_key = api_key or (getattr(settings, "OPENAI_API_KEY", "") if settings else "") or os.getenv("OPENAI_API_KEY", "")
+        self.model = model
+        self._client = None
+
+    def _get_client(self):
+        if not self.api_key:
+            raise LLMProviderError("OPENAI_API_KEY is not configured for supervisor routing.")
+        if not self._client:
+            from openai import AsyncOpenAI
+            self._client = AsyncOpenAI(api_key=self.api_key)
+        return self._client
+
+    async def generate_decision_json(
+        self,
+        user_message: str,
+        system_prompt: str,
+        context: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        client = self._get_client()
+        try:
+            response = await client.chat.completions.create(
+                model=self.model,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Classify and route the following request:\n{user_message}"}
+                ],
+                temperature=0.0
+            )
+            content = response.choices[0].message.content or "{}"
+            return json.loads(content)
+        except Exception as exc:
+            raise LLMProviderError(f"OpenAI supervisor routing failed: {exc!s}") from exc
+
+
 class HybridDeterministicProvider(BaseLLMProvider):
     """
     High-efficiency provider that evaluates deterministic rules first.
-    If no rule matches, it falls back to an online provider or safe classification.
+    If no rule matches, it falls back to OpenAI or safe deterministic default.
     """
 
     def __init__(self, fallback_provider: BaseLLMProvider | None = None):
-        self.fallback_provider = fallback_provider or MockLLMProvider()
+        self.fallback_provider = fallback_provider or DeterministicSupervisorProvider()
+        api_key = (getattr(settings, "OPENAI_API_KEY", "") if settings else "") or os.getenv("OPENAI_API_KEY", "")
+        self.openai_provider = OpenAISupervisorProvider(api_key=api_key) if api_key else None
 
     async def generate_decision_json(
         self,
@@ -102,7 +119,16 @@ class HybridDeterministicProvider(BaseLLMProvider):
         if decision:
             return decision.model_dump()
 
-        # Fallback to secondary provider
+        if self.openai_provider:
+            try:
+                return await self.openai_provider.generate_decision_json(
+                    user_message=user_message,
+                    system_prompt=system_prompt,
+                    context=context
+                )
+            except LLMProviderError:
+                pass
+
         return await self.fallback_provider.generate_decision_json(
             user_message=user_message,
             system_prompt=system_prompt,

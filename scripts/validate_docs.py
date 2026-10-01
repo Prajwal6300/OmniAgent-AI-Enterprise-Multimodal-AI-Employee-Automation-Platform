@@ -5,6 +5,7 @@ OmniAgent AI — Documentation Validation Script
 import re
 import sys
 
+
 def main():
     with open("md/OMNIAGENT_AI_COMPLETE_DOCUMENTATION.md", encoding="utf-8") as f:
         text = f.read()

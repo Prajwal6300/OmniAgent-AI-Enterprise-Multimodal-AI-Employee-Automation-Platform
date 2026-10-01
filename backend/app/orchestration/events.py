@@ -78,7 +78,7 @@ class OrchestrationEvent(BaseModel):
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     metadata: dict[str, Any] = Field(default_factory=dict)
 
-    def model_post_init(self, __context: Any) -> None:
+    def model_post_init(self, context: Any, /) -> None:
         if self.metadata:
             self.metadata = sanitize_event_metadata(self.metadata)
 

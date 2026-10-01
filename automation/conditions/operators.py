@@ -8,7 +8,7 @@ def safe_contains(a, b) -> bool:
         return False
     try:
         return b in a
-    except Exception:
+    except (TypeError, ValueError):
         return str(b) in str(a)
 
 def safe_not_contains(a, b) -> bool:

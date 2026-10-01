@@ -4,10 +4,11 @@ Tests WorkflowEngine execution, condition evaluation, approval pauses, and step 
 """
 
 import pytest
+
 from automation.conditions.evaluator import ConditionEvaluator
 from automation.conditions.rules import Rule
 from automation.engine.engine import WorkflowEngine
-from automation.triggers.base import EventTrigger, ManualTrigger, ScheduleTrigger
+from automation.triggers.base import EventTrigger, ManualTrigger
 
 
 def test_condition_evaluator_all_operators():

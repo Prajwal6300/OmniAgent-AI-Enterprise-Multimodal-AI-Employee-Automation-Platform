@@ -5,14 +5,13 @@ Enterprise Multimodal Vision Agent for industrial visual inspection, OCR, and ob
 
 from agents.vision.agent import VisionAgent
 from agents.vision.analyzer import (
+    DeterministicVisionAnalyzer,
     HybridVisionProvider,
-    MockVisionProvider,
     OpenAIVisionProvider,
     VisionProvider,
     get_vision_provider,
 )
 from agents.vision.detector import (
-    MockObjectDetector,
     ObjectDetector,
     SystemObjectDetector,
     get_object_detector,
@@ -27,7 +26,6 @@ from agents.vision.exceptions import (
     VisionValidationError,
 )
 from agents.vision.ocr import (
-    MockOCRProvider,
     OCRProvider,
     SystemOCRProvider,
     get_ocr_provider,
@@ -49,11 +47,9 @@ from agents.vision.state import VisionState
 
 __all__ = [
     "ComponentStatuses",
+    "DeterministicVisionAnalyzer",
     "HybridVisionProvider",
     "ImageMetadata",
-    "MockOCRProvider",
-    "MockObjectDetector",
-    "MockVisionProvider",
     "OCREngineError",
     "OCRProvider",
     "OCRRegion",

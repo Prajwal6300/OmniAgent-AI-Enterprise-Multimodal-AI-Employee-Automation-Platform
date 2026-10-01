@@ -1,7 +1,8 @@
-from typing import Dict, Any, List
+from typing import Any
+
 
 class SchemaInference:
-    def infer_columns(self, sample_records: List[Dict[str, Any]]) -> Dict[str, str]:
+    def infer_columns(self, sample_records: list[dict[str, Any]]) -> dict[str, str]:
         schema = {}
         if not sample_records:
             return schema

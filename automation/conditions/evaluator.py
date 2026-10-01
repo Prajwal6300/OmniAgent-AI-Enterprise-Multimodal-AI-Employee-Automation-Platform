@@ -1,4 +1,5 @@
 from typing import Any
+
 from automation.conditions.operators import OPERATORS
 from automation.conditions.rules import Rule
 

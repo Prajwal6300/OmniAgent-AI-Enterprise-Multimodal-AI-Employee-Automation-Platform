@@ -13,7 +13,7 @@ class ApprovalService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def decide(self, approval_id: UUID, user_id: UUID, decision: str, reason: str = None) -> Approval:
+    async def decide(self, approval_id: UUID, user_id: UUID, decision: str, reason: str | None = None) -> Approval:
         approval = await self.session.get(Approval, approval_id)
         if not approval:
             raise ValueError("Approval not found")

@@ -206,10 +206,11 @@ class OrchestrationAgentExecutor:
                         image_id = att["id"]
                     if att.get("content_b64"):
                         import base64
+                        import binascii
                         try:
                             image_bytes = base64.b64decode(att["content_b64"])
-                        except Exception:
-                            pass
+                        except (binascii.Error, ValueError) as decode_err:
+                            logger.debug("invalid_base64_attachment", error=str(decode_err))
                     if att.get("url"):
                         image_path = att["url"]
 
@@ -239,10 +240,11 @@ class OrchestrationAgentExecutor:
                         doc_id = att["id"]
                     if att.get("content_b64"):
                         import base64
+                        import binascii
                         try:
                             file_bytes = base64.b64decode(att["content_b64"])
-                        except Exception:
-                            pass
+                        except (binascii.Error, ValueError) as decode_err:
+                            logger.debug("invalid_base64_attachment", error=str(decode_err))
 
             res = await doc_agent.analyze(
                 document_id=str(doc_id),

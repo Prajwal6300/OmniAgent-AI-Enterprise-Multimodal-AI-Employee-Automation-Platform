@@ -5,22 +5,12 @@ SQL injection protection, tenant isolation, timeouts, schema boundaries, and agg
 """
 
 import asyncio
-from unittest.mock import AsyncMock, patch
+
 import pytest
 
 from agents.database.agent import DatabaseAgent
-from agents.database.exceptions import (
-    DatabaseExecutionError,
-    QueryTimeoutError,
-    SQLValidationError,
-    SchemaValidationError,
-    UnsafeSQLError,
-)
 from agents.database.executor import DatabaseExecutor
-from agents.database.schema_registry import SchemaRegistry, schema_registry
-from agents.database.schemas import DatabaseResponse
 from agents.database.security import SecurityValidator
-from agents.database.sql_generator import SQLGenerator
 from agents.database.sql_validator import SQLValidator
 
 

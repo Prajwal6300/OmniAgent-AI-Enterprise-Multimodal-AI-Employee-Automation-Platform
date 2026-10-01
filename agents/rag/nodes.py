@@ -4,12 +4,10 @@ from typing import Any
 from agents.rag.citations import CitationBuilder
 from agents.rag.context import ContextBuilder
 from agents.rag.embeddings import BaseEmbeddingProvider, get_embedding_provider
-from agents.rag.exceptions import RAGQueryError
 from agents.rag.prompts import RAG_FALLBACK_ANSWER
 from agents.rag.providers import BaseRAGLLMProvider, get_default_rag_llm_provider
 from agents.rag.reranker import BaseReranker, SimpleRelevanceReranker
 from agents.rag.retriever import BaseRAGRetriever, InMemoryVectorRetriever
-from agents.rag.schemas import RetrievedChunk
 from agents.rag.state import RAGState
 
 

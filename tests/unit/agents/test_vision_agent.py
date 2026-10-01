@@ -10,10 +10,12 @@ import pytest
 from PIL import Image
 
 from agents.vision.agent import VisionAgent
-from agents.vision.analyzer import MockVisionProvider
-from agents.vision.detector import MockObjectDetector
-from agents.vision.ocr import MockOCRProvider
 from agents.vision.schemas import ProcessorStatus, TaskType
+from tests.fixtures.mock_providers import (
+    MockObjectDetector,
+    MockOCRProvider,
+    MockVisionProvider,
+)
 
 
 def make_test_jpeg(size=(200, 200), color="blue") -> bytes:

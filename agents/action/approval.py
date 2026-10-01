@@ -21,7 +21,6 @@ DEFAULT_RISK_POLICY: dict[str, RiskLevel] = {
     "send_notification": RiskLevel.LOW,
     "send_email": RiskLevel.MEDIUM,
     "create_ticket": RiskLevel.MEDIUM,
-    "erp_write": RiskLevel.HIGH,
     "financial_change": RiskLevel.HIGH,
     "delete_data": RiskLevel.CRITICAL,
 }

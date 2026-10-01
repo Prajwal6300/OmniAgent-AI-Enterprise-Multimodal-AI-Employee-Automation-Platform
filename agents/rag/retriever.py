@@ -1,14 +1,14 @@
 import math
-from typing import Any, List, Optional
+from typing import Any
 from uuid import UUID
 
 from agents.rag.exceptions import RetrievalError, UnauthorizedDocumentAccessError
 from agents.rag.schemas import RetrievedChunk
 
 try:
-    from sqlalchemy import select, and_
-    from sqlalchemy.ext.asyncio import AsyncSession
     from app.models.document import Document, DocumentChunk
+    from sqlalchemy import and_, select
+    from sqlalchemy.ext.asyncio import AsyncSession
 except ImportError:
     AsyncSession = None
     Document = None
@@ -20,13 +20,13 @@ class BaseRAGRetriever:
 
     async def retrieve(
         self,
-        query_embedding: List[float],
+        query_embedding: list[float],
         organization_id: str,
         top_k: int = 5,
-        document_id: Optional[str] = None,
+        document_id: str | None = None,
         similarity_threshold: float = 0.05,
-        user_id: Optional[str] = None
-    ) -> List[RetrievedChunk]:
+        user_id: str | None = None
+    ) -> list[RetrievedChunk]:
         raise NotImplementedError
 
 
@@ -41,13 +41,13 @@ class DatabaseVectorRetriever(BaseRAGRetriever):
 
     async def retrieve(
         self,
-        query_embedding: List[float],
+        query_embedding: list[float],
         organization_id: str,
         top_k: int = 5,
-        document_id: Optional[str] = None,
+        document_id: str | None = None,
         similarity_threshold: float = 0.05,
-        user_id: Optional[str] = None
-    ) -> List[RetrievedChunk]:
+        user_id: str | None = None
+    ) -> list[RetrievedChunk]:
         if not self.session:
             raise RetrievalError("Database session is required for DatabaseVectorRetriever.")
 
@@ -84,7 +84,7 @@ class DatabaseVectorRetriever(BaseRAGRetriever):
             result = await self.session.execute(stmt)
             rows = result.all()
 
-            retrieved: List[RetrievedChunk] = []
+            retrieved: list[RetrievedChunk] = []
             for chunk_record, file_name, distance in rows:
                 score = round(1.0 - float(distance), 4) if distance is not None else 0.5
                 if score < similarity_threshold:
@@ -120,10 +120,10 @@ class InMemoryVectorRetriever(BaseRAGRetriever):
     Implements exact cosine similarity and enforces tenant boundaries without requiring a live database.
     """
 
-    def __init__(self, initial_chunks: Optional[List[RetrievedChunk]] = None):
-        self._chunks: List[RetrievedChunk] = initial_chunks or []
+    def __init__(self, initial_chunks: list[RetrievedChunk] | None = None):
+        self._chunks: list[RetrievedChunk] = initial_chunks or []
 
-    def add_chunk(self, chunk: RetrievedChunk, embedding: Optional[List[float]] = None):
+    def add_chunk(self, chunk: RetrievedChunk, embedding: list[float] | None = None):
         if embedding:
             chunk.metadata["embedding"] = embedding
         self._chunks.append(chunk)
@@ -133,14 +133,14 @@ class InMemoryVectorRetriever(BaseRAGRetriever):
 
     async def retrieve(
         self,
-        query_embedding: List[float],
+        query_embedding: list[float],
         organization_id: str,
         top_k: int = 5,
-        document_id: Optional[str] = None,
+        document_id: str | None = None,
         similarity_threshold: float = 0.05,
-        user_id: Optional[str] = None
-    ) -> List[RetrievedChunk]:
-        scored: List[tuple[float, RetrievedChunk]] = []
+        user_id: str | None = None
+    ) -> list[RetrievedChunk]:
+        scored: list[tuple[float, RetrievedChunk]] = []
 
         q_norm = math.sqrt(sum(x * x for x in query_embedding))
 
@@ -188,10 +188,10 @@ class AgentRetriever:
     """
     Backward-compatibility class matching existing agent.py import.
     """
-    def __init__(self, retriever: Optional[BaseRAGRetriever] = None):
+    def __init__(self, retriever: BaseRAGRetriever | None = None):
         self._retriever = retriever or InMemoryVectorRetriever()
 
-    async def retrieve(self, query: str, top_k: int = 5) -> List[dict]:
+    async def retrieve(self, query: str, top_k: int = 5) -> list[dict]:
         # Legacy stub return format
         return [
             {"id": "doc-1", "snippet": "Enterprise standard operating procedure", "content": "Enterprise standard operating procedure"}

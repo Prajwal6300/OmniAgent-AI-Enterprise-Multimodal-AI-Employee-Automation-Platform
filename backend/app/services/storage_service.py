@@ -133,14 +133,36 @@ class LocalStorageService(BaseStorageService):
             return False
 
 
-class S3StorageService(BaseStorageService):
+class SupabaseStorageService(BaseStorageService):
     """
-    S3/MinIO compatible object storage provider.
-    Falls back to LocalStorageService in development and test environments.
+    Production object storage service backed by Supabase Storage (S3-compatible API).
+    Provides tenant-isolated object key paths, checksum verification, and traversal guards.
     """
 
     def __init__(self):
-        self._local_fallback = LocalStorageService()
+        import boto3
+        from botocore.config import Config
+
+        endpoint = getattr(settings, "SUPABASE_S3_ENDPOINT", "")
+        region = getattr(settings, "SUPABASE_S3_REGION", "us-east-1")
+        access_key = getattr(settings, "SUPABASE_S3_ACCESS_KEY", "")
+        secret_key = getattr(settings, "SUPABASE_S3_SECRET_KEY", "")
+        self.bucket = getattr(settings, "SUPABASE_BUCKET", "omniagent-documents")
+
+        if not endpoint or not access_key or not secret_key:
+            raise ValueError(
+                "Supabase Storage credentials missing. Set SUPABASE_S3_ENDPOINT, "
+                "SUPABASE_S3_ACCESS_KEY, and SUPABASE_S3_SECRET_KEY."
+            )
+
+        self._s3_client = boto3.client(
+            "s3",
+            endpoint_url=endpoint,
+            region_name=region,
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            config=Config(signature_version="s3v4"),
+        )
 
     async def save_file(
         self,
@@ -148,21 +170,87 @@ class S3StorageService(BaseStorageService):
         original_filename: str,
         org_id: UUID
     ) -> tuple[str, str, int]:
-        return await self._local_fallback.save_file(file_data, original_filename, org_id)
+        safe_name = sanitize_filename(original_filename)
+        file_uuid = uuid.uuid4().hex
+        key = f"{org_id}/{file_uuid}_{safe_name}"
+
+        checksum = hashlib.sha256(file_data).hexdigest()
+        file_size = len(file_data)
+
+        def _upload():
+            self._s3_client.put_object(
+                Bucket=self.bucket,
+                Key=key,
+                Body=file_data,
+                Metadata={
+                    "checksum-sha256": checksum,
+                    "organization-id": str(org_id),
+                    "original-filename": safe_name,
+                }
+            )
+
+        await asyncio.to_thread(_upload)
+        logger.info(
+            "file_stored_supabase",
+            storage_path=key,
+            size_bytes=file_size,
+            checksum=checksum,
+            org_id=str(org_id)
+        )
+        return key, checksum, file_size
 
     async def read_file(self, storage_path: str) -> bytes:
-        return await self._local_fallback.read_file(storage_path)
+        def _download() -> bytes:
+            try:
+                response = self._s3_client.get_object(
+                    Bucket=self.bucket,
+                    Key=storage_path
+                )
+                return response["Body"].read()
+            except Exception as exc:
+                raise FileNotFoundError(f"Supabase storage object not found: {storage_path}") from exc
+
+        return await asyncio.to_thread(_download)
 
     async def delete_file(self, storage_path: str) -> bool:
-        return await self._local_fallback.delete_file(storage_path)
+        def _delete() -> bool:
+            try:
+                self._s3_client.delete_object(
+                    Bucket=self.bucket,
+                    Key=storage_path
+                )
+                return True
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("supabase_file_delete_failed", path=storage_path, error=str(exc))
+                return False
+
+        return await asyncio.to_thread(_delete)
 
     async def exists(self, storage_path: str) -> bool:
-        return await self._local_fallback.exists(storage_path)
+        def _head() -> bool:
+            try:
+                self._s3_client.head_object(
+                    Bucket=self.bucket,
+                    Key=storage_path
+                )
+                return True
+            except Exception:  # noqa: BLE001
+                return False
+
+        return await asyncio.to_thread(_head)
 
 
 def get_storage_service(provider: str | None = None) -> BaseStorageService:
     """Factory returning configured storage service provider."""
-    selected_provider = (provider or settings.STORAGE_PROVIDER).lower()
-    if selected_provider in ["s3", "minio"]:
-        return S3StorageService()
+    selected_provider = (provider or getattr(settings, "STORAGE_PROVIDER", "local")).lower()
+
+    env = getattr(settings, "ENVIRONMENT", "development").lower()
+    if env == "production" and selected_provider == "local":
+        raise RuntimeError(
+            "Production security error: STORAGE_PROVIDER cannot be 'local' in production. "
+            "Configure Supabase Storage ('supabase')."
+        )
+
+    if selected_provider == "supabase":
+        return SupabaseStorageService()
     return LocalStorageService()

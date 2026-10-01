@@ -1,17 +1,20 @@
+from agents.rag.embeddings import OpenAIEmbeddingProvider
+
 from app.core.config import settings
-from app.services.rag.embeddings.provider import (
-    DeterministicBackendEmbeddingProvider,
-    EmbeddingProvider,
-)
 
 
 class EmbeddingFactory:
+    """Factory creating OpenAI vector embedding providers for RAG ingestion and retrieval."""
+
     @staticmethod
-    def get_provider() -> EmbeddingProvider:
-        provider_type = getattr(settings, "EMBEDDING_PROVIDER", "mock").lower()
-        if provider_type == "deterministic":
-            return DeterministicBackendEmbeddingProvider(dimension=settings.EMBEDDING_DIMENSION)
-        if provider_type == "openai" and settings.OPENAI_API_KEY:
-            from agents.rag.embeddings import OpenAIEmbeddingProvider
-            return OpenAIEmbeddingProvider(api_key=settings.OPENAI_API_KEY, model=settings.EMBEDDING_MODEL)
-        return DeterministicBackendEmbeddingProvider(dimension=settings.EMBEDDING_DIMENSION)
+    def get_provider() -> OpenAIEmbeddingProvider:
+        api_key = getattr(settings, "OPENAI_API_KEY", "")
+        if not api_key:
+            raise ValueError(
+                "OPENAI_API_KEY is not configured. Vector embeddings require a valid OpenAI API key."
+            )
+        return OpenAIEmbeddingProvider(
+            api_key=api_key,
+            model=getattr(settings, "EMBEDDING_MODEL", "text-embedding-3-large"),
+            dimension=getattr(settings, "EMBEDDING_DIMENSION", 1536),
+        )

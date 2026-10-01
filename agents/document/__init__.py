@@ -10,8 +10,8 @@ from agents.document.exceptions import (
 )
 from agents.document.providers import (
     BaseDocumentLLMProvider,
+    DeterministicDocumentProvider,
     HybridDocumentLLMProvider,
-    MockDocumentLLMProvider,
     get_default_document_llm_provider,
 )
 from agents.document.schemas import (
@@ -33,6 +33,7 @@ from agents.document.state import DocumentState
 
 __all__ = [
     "BaseDocumentLLMProvider",
+    "DeterministicDocumentProvider",
     "DocumentAgent",
     "DocumentAgentException",
     "DocumentAnalysisResult",
@@ -52,7 +53,6 @@ __all__ = [
     "ExtractedField",
     "HybridDocumentLLMProvider",
     "InvoiceData",
-    "MockDocumentLLMProvider",
     "PolicyData",
     "ReportData",
     "SourceReference",

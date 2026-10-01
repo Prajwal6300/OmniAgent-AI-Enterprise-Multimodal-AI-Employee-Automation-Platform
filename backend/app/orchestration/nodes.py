@@ -235,7 +235,7 @@ async def evaluate_result_node(state: OrchestrationState) -> dict[str, Any]:
 
     target_agent = state.get("target_agent", "")
     task_type = state.get("task_type", "")
-    plan = state.get("execution_plan") or []
+    state.get("execution_plan") or []
 
     # Check if action was requested
     action_requested = (
@@ -484,15 +484,14 @@ async def approval_check_node(state: OrchestrationState) -> dict[str, Any]:
         stored_detail = state.get("approval_detail") or {}
         stored_hash = stored_detail.get("payload_hash")
 
-        if stored_hash:
-            if not validate_approval_binding(
-                stored_payload_hash=stored_hash,
-                organization_id=org_id,
-                user_id=user_id,
-                action_type=action_type,
-                normalized_input=action_input,
-            ):
-                raise InvalidApprovalError("INVALID_APPROVAL: Action payload has been modified after approval.")
+        if stored_hash and not validate_approval_binding(
+            stored_payload_hash=stored_hash,
+            organization_id=org_id,
+            user_id=user_id,
+            action_type=action_type,
+            normalized_input=action_input,
+        ):
+            raise InvalidApprovalError("INVALID_APPROVAL: Action payload has been modified after approval.")
 
         event_recorder.record(
             event_type=OrchestrationEventType.APPROVAL_GRANTED,

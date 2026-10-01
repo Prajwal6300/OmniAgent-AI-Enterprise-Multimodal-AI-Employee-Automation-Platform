@@ -1,11 +1,11 @@
 import pytest
+
 from agents.rag.agent import RAGAgent
-from agents.rag.context import ContextBuilder
-from agents.rag.embeddings import DeterministicEmbeddingProvider
 from agents.rag.prompts import RAG_FALLBACK_ANSWER
-from agents.rag.providers import MockRAGLLMProvider
 from agents.rag.retriever import InMemoryVectorRetriever
 from agents.rag.schemas import RetrievedChunk
+from tests.fixtures.embeddings import DeterministicEmbeddingProvider
+from tests.fixtures.mock_providers import MockRAGLLMProvider
 
 
 @pytest.fixture

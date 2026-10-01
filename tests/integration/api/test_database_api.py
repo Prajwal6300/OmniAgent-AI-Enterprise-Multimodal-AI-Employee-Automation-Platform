@@ -5,14 +5,13 @@ Supervisor-to-Database Agent routing, and response envelope contracts.
 """
 
 import uuid
-from unittest.mock import AsyncMock, patch
-import pytest
-from httpx import ASGITransport, AsyncClient
 
+import pytest
 from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db_session
 from app.main import app
 from app.models.user import User
+from httpx import ASGITransport, AsyncClient
 
 
 class DummyAsyncSession:

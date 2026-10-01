@@ -5,6 +5,7 @@ from agents.rag.embeddings import get_embedding_provider
 from agents.rag.retriever import DatabaseVectorRetriever
 from agents.rag.schemas import RAGResponse
 from fastapi import HTTPException, status
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -101,7 +102,7 @@ class RAGService:
                 status="COMPLETED" if response.grounded else "REFUSED"
             )
             await self.agent_repo.create_run(run)
-        except Exception:
-            pass
+        except (SQLAlchemyError, ValueError) as db_err:
+            logger.warning("rag_run_audit_persistence_failed", error=str(db_err))
 
         return response

@@ -1,8 +1,10 @@
 from uuid import UUID
 
 from agents.supervisor import SupervisorAgent
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging import logger
 from app.models.agent_run import AgentRun
 from app.repositories.agent_repository import AgentRepository
 from app.schemas.agent import AgentRunRequest, SupervisorAnalyzeRequest, SupervisorDecision
@@ -62,8 +64,7 @@ class AgentService:
                 status="COMPLETED"
             )
             await self.agent_repo.create_run(run)
-        except Exception:
-            # Audit log persistence is non-blocking to prevent core routing degradation
-            pass
+        except (SQLAlchemyError, ValueError) as db_err:
+            logger.warning("agent_run_audit_persistence_failed", error=str(db_err))
 
         return decision

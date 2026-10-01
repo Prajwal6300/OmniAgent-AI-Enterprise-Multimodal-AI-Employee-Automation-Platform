@@ -4,17 +4,14 @@ Tests prompt injection defense, anti-code execution, parameter tamper resistance
 credential injection rejection, and tenant exfiltration prevention.
 """
 
-from datetime import datetime, timezone
 import uuid
+
 import pytest
 
 from agents.action.agent import ActionAgent
 from agents.action.approval import compute_payload_hash, validate_approval_binding
 from agents.action.exceptions import (
-    ActionError,
-    ActionPermissionDeniedError,
     ActionSecurityError,
-    ActionValidationError,
 )
 from agents.action.executor import ActionExecutor, FakeEmailProvider, FakeTicketProvider
 from agents.action.schemas import ActionContext, ActionRequest, ActionStatus

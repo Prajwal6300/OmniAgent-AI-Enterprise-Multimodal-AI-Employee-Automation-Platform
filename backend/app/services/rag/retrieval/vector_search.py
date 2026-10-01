@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select, func, text
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import DocumentChunk
@@ -65,12 +65,20 @@ class VectorSearch:
         # Build a plain SQL query for tsvector similarity since we need rank function
         # We'll use a raw SQL approach for RRF since SQLAlchemy doesn't directly support it
         tsvector_qs = (
-            select(DocumentChunk, func.ts_rank_cd(
-                DocumentChunk.embedding_tsvector,
-                func.plainto_tsquery(query_text or "english")
-            ).label("ts_rank")
+            select(
+                DocumentChunk,
+                func.ts_rank_cd(
+                    func.to_tsvector('english', DocumentChunk.content),
+                    func.plainto_tsquery('english', query_text or ""),
+                ).label("ts_rank"),
+            )
             .where(DocumentChunk.organization_id == org_id)
-            .order_by(func.ts_rank_cd(func.plainto_tsquery(query_text or "english"), DocumentChunk.embedding_tsvector).desc())
+            .order_by(
+                func.ts_rank_cd(
+                    func.to_tsvector('english', DocumentChunk.content),
+                    func.plainto_tsquery('english', query_text or ""),
+                ).desc()
+            )
             .limit(200)
         )
         tsvector_result = await self.session.execute(tsvector_qs)
@@ -117,7 +125,7 @@ class VectorSearch:
             return dense_chunks[:top_k]
 
         # Get chunks by ID
-        chunk_id_set = set(sorted_chunk_ids[:top_k * 2])  # Get extra in case some are missing
+        set(sorted_chunk_ids[:top_k * 2])  # Get extra in case some are missing
         chunk_lookup = {chunk.id: chunk for chunk in dense_chunks}
 
         # Add tsvector chunks to lookup

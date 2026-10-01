@@ -10,12 +10,8 @@ import DashboardPage from './pages/Dashboard';
 import ChatPage from './pages/Chat';
 import DocumentsPage from './pages/Documents';
 import ImageAnalysisPage from './pages/ImageAnalysis';
-import VoicePage from './pages/Voice';
-import VideoPage from './pages/Video';
 import KnowledgeBasePage from './pages/KnowledgeBase';
-import AgentsPage from './pages/Agents';
 import WorkflowsPage from './pages/Workflows';
-import TasksPage from './pages/Tasks';
 import ApprovalsPage from './pages/Approvals';
 import AgentRunsPage from './pages/AgentRuns';
 import AnalyticsPage from './pages/Analytics';
@@ -37,12 +33,8 @@ export default function App() {
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
         <Route path="/image-analysis" element={<ImageAnalysisPage />} />
-        <Route path="/voice" element={<VoicePage />} />
-        <Route path="/video" element={<VideoPage />} />
         <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
-        <Route path="/agents" element={<AgentsPage />} />
         <Route path="/workflows" element={<WorkflowsPage />} />
-        <Route path="/tasks" element={<TasksPage />} />
         <Route path="/approvals" element={<ApprovalsPage />} />
         <Route path="/agent-runs" element={<AgentRunsPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />

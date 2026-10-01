@@ -153,64 +153,6 @@ class SystemObjectDetector:
             return [], ProcessorStatus.FAILED.value, f"Object detection failed: {exc!s}"
 
 
-class MockObjectDetector:
-    """
-    Deterministic mock object detector for unit tests and offline testing.
-    Supports simulated detections, empty detections, confidence levels, and failures.
-    """
-
-    def __init__(
-        self,
-        custom_detections: list[dict[str, Any]] | None = None,
-        simulate_failure: bool = False,
-        simulate_unavailable: bool = False,
-    ):
-        self.custom_detections = custom_detections
-        self.simulate_failure = simulate_failure
-        self.simulate_unavailable = simulate_unavailable
-
-    async def detect(
-        self, image_path: str | None = None, image_bytes: bytes | None = None
-    ) -> tuple[list[dict[str, Any]], str, str | None]:
-        if self.simulate_unavailable:
-            return (
-                [],
-                ProcessorStatus.UNAVAILABLE.value,
-                "Object detection is not configured for this deployment.",
-            )
-
-        if self.simulate_failure:
-            return (
-                [],
-                ProcessorStatus.FAILED.value,
-                "Simulated detector neural engine execution error.",
-            )
-
-        if self.custom_detections is not None:
-            return self.custom_detections, ProcessorStatus.SUCCESS.value, None
-
-        # Default sample deterministic detections for mock testing
-        return (
-            [
-                {
-                    "label": "machine_housing",
-                    "confidence": 0.94,
-                    "bbox": [120.0, 80.0, 540.0, 420.0],
-                },
-                {
-                    "label": "hydraulic_fitting",
-                    "confidence": 0.89,
-                    "bbox": [200.0, 150.0, 310.0, 260.0],
-                },
-            ],
-            ProcessorStatus.SUCCESS.value,
-            None,
-        )
-
-
 def get_object_detector(detector_type: str | None = None) -> ObjectDetector:
     """Factory retrieving the configured ObjectDetector."""
-    name = (detector_type or os.getenv("VISION_DETECTOR_PROVIDER", "system")).lower()
-    if name == "mock":
-        return MockObjectDetector()
     return SystemObjectDetector()

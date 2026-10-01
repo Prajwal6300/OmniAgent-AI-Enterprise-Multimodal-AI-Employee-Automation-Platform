@@ -5,13 +5,13 @@ md/OMNIAGENT_AI_COMPLETE_DOCUMENTATION.md
 """
 
 import os
-import sys
 
 from doc_modules.header_toc import get_header_and_toc
 from doc_modules.part1 import get_part1
 from doc_modules.part2 import get_part2
 from doc_modules.part3 import get_part3
 from doc_modules.part4 import get_part4
+
 
 def main():
     target_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "md")
@@ -36,7 +36,7 @@ def main():
     file_size_bytes = os.path.getsize(target_file)
     total_lines = full_documentation.count("\n") + 1
 
-    print(f"Documentation compiled successfully!")
+    print("Documentation compiled successfully!")
     print(f"File: {target_file}")
     print(f"Size: {file_size_bytes:,} bytes")
     print(f"Lines: {total_lines:,}")

@@ -1,5 +1,6 @@
-from typing import Dict, Any
+from typing import Any
+
 
 class OCREngine:
-    def extract_text(self, image_path: str) -> Dict[str, Any]:
+    def extract_text(self, image_path: str) -> dict[str, Any]:
         return {"text": "OCR recognized text.", "confidence": 0.95}

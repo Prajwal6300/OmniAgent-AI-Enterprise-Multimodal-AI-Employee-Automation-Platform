@@ -2,8 +2,8 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.rag.retrieval.vector_search import VectorSearch
 from app.services.rag.retrieval.reranking import get_reranker
+from app.services.rag.retrieval.vector_search import VectorSearch
 
 
 class HybridSearch:

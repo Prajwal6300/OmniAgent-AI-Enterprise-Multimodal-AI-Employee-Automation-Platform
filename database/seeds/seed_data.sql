@@ -1,63 +1,147 @@
 -- =============================================================================
--- OmniAgent AI — Baseline Enterprise Seed Data
+-- OmniAgent AI — Baseline Enterprise Seed Data (Roles, Permissions & Runnable Workflows)
 -- =============================================================================
 
--- 1. Default Organization & Department
+-- 1. Default Organization & Department Bootstrap
 INSERT INTO organizations (id, name, slug)
 VALUES ('00000000-0000-0000-0000-000000000001', 'OmniCorp Enterprise', 'omnicorp')
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO departments (id, organization_id, name, code)
 VALUES 
-  ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Information Technology', 'IT'),
-  ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'Finance & Accounting', 'FIN'),
-  ('10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'Human Resources', 'HR')
+  ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Engineering & Operations', 'ENG'),
+  ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'Finance & Compliance', 'FIN')
 ON CONFLICT (organization_id, code) DO NOTHING;
 
--- 2. System Roles
+-- 2. 6-Role System Hierarchy
 INSERT INTO roles (id, name, description, is_system_role)
 VALUES 
-  ('20000000-0000-0000-0000-000000000001', 'Owner', 'Full control over the organization and billing', TRUE),
-  ('20000000-0000-0000-0000-000000000002', 'Admin', 'System configuration and user management', TRUE),
-  ('20000000-0000-0000-0000-000000000003', 'Supervisor', 'Approves high-risk agent workflows and manages tasks', TRUE),
-  ('20000000-0000-0000-0000-000000000004', 'Operator', 'Runs agent tasks and interacts with workflows', TRUE),
-  ('20000000-0000-0000-0000-000000000005', 'Auditor', 'Read-only access to audit logs and trace history', TRUE),
-  ('20000000-0000-0000-0000-000000000006', 'Viewer', 'Read-only access to authorized public dashboards', TRUE)
+  ('20000000-0000-0000-0000-000000000001', 'Owner', 'Full organization control, billing, and owner delegation', TRUE),
+  ('20000000-0000-0000-0000-000000000002', 'Admin', 'User management, integrations, and policy configuration', TRUE),
+  ('20000000-0000-0000-0000-000000000003', 'Supervisor', 'Human-in-the-loop authorization and workflow supervision', TRUE),
+  ('20000000-0000-0000-0000-000000000004', 'Operator', 'Runs agent workflows, document processing, and chat tasks', TRUE),
+  ('20000000-0000-0000-0000-000000000005', 'Auditor', 'Cryptographic audit log verification and trace inspections', TRUE),
+  ('20000000-0000-0000-0000-000000000006', 'Viewer', 'Read-only access to published analytics and reports', TRUE)
 ON CONFLICT DO NOTHING;
 
--- 3. Business Machines & Production Records
-INSERT INTO machines (id, organization_id, name, machine_code, status, failure_count)
+-- 3. Granular System Permissions
+INSERT INTO permissions (id, name, description, category)
 VALUES
-  ('30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Robotic Welder Alpha', 'RWA-01', 'OPERATIONAL', 3),
-  ('30000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'CNC Milling Station Beta', 'CMS-02', 'MAINTENANCE', 7),
-  ('30000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'High-Speed Stamper Gamma', 'HSS-03', 'FAILED', 14)
+  ('21000000-0000-0000-0000-000000000001', 'org:manage', 'Manage organization settings and members', 'admin'),
+  ('21000000-0000-0000-0000-000000000002', 'users:read', 'View organization users and roles', 'users'),
+  ('21000000-0000-0000-0000-000000000003', 'users:write', 'Invite users and change role assignments', 'users'),
+  ('21000000-0000-0000-0000-000000000004', 'documents:read', 'Read and query documents in knowledge base', 'documents'),
+  ('21000000-0000-0000-0000-000000000005', 'documents:write', 'Upload, parse, and index document chunks', 'documents'),
+  ('21000000-0000-0000-0000-000000000006', 'chat:execute', 'Execute conversational multi-agent inquiries', 'agents'),
+  ('21000000-0000-0000-0000-000000000007', 'actions:execute', 'Dispatch authorized operational actions', 'actions'),
+  ('21000000-0000-0000-0000-000000000008', 'approvals:decide', 'Approve or reject pending human-in-the-loop requests', 'approvals'),
+  ('21000000-0000-0000-0000-000000000009', 'workflows:manage', 'Create, edit, and trigger automated workflows', 'workflows'),
+  ('21000000-0000-0000-0000-000000000010', 'audit:verify', 'Read and verify cryptographic audit hash chains', 'audit'),
+  ('21000000-0000-0000-0000-000000000011', 'integrations:manage', 'Configure external third-party integrations', 'integrations')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO production_records (id, organization_id, machine_id, batch_number, status, defect_count, production_time_hours)
+-- 4. Role-Permission Mappings
+-- Owner: All permissions
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT '20000000-0000-0000-0000-000000000001', id FROM permissions
+ON CONFLICT DO NOTHING;
+
+-- Admin: All permissions except owner-exclusive org deletion
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT '20000000-0000-0000-0000-000000000002', id FROM permissions
+WHERE name != 'org:manage'
+ON CONFLICT DO NOTHING;
+
+-- Supervisor: Approvals, actions, workflows, documents, chat
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT '20000000-0000-0000-0000-000000000003', id FROM permissions
+WHERE name IN ('approvals:decide', 'actions:execute', 'workflows:manage', 'documents:read', 'documents:write', 'chat:execute', 'users:read')
+ON CONFLICT DO NOTHING;
+
+-- Operator: Documents, chat, workflow trigger
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT '20000000-0000-0000-0000-000000000004', id FROM permissions
+WHERE name IN ('documents:read', 'documents:write', 'chat:execute', 'workflows:manage')
+ON CONFLICT DO NOTHING;
+
+-- Auditor: Audit verify, documents read, users read
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT '20000000-0000-0000-0000-000000000005', id FROM permissions
+WHERE name IN ('audit:verify', 'documents:read', 'users:read')
+ON CONFLICT DO NOTHING;
+
+-- Viewer: Documents read
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT '20000000-0000-0000-0000-000000000006', id FROM permissions
+WHERE name IN ('documents:read')
+ON CONFLICT DO NOTHING;
+
+-- 5. Real, Runnable Seed Workflows (Built strictly from working steps)
+INSERT INTO workflows (id, organization_id, name, description, trigger_type, definition, is_active)
 VALUES
-  ('31000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'BATCH-2026-09A', 'PASSED', 0, 4.5),
-  ('31000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000002', 'BATCH-2026-09B', 'FAILED', 12, 6.2),
-  ('31000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000003', 'BATCH-2026-09C', 'FAILED', 18, 5.8)
+  (
+    '70000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    'Automated Document Ingestion & RAG Indexing',
+    'Processes uploaded enterprise documents, chunks text, creates vector embeddings, and alerts team.',
+    'MANUAL',
+    '{
+      "steps": [
+        {
+          "id": "step_extract",
+          "name": "Extract Document Pages",
+          "action": "document_extract",
+          "params": {"allowed_types": ["pdf", "docx", "txt"]}
+        },
+        {
+          "id": "step_index",
+          "name": "Generate Vector Embeddings",
+          "action": "rag_index",
+          "params": {"chunk_size": 500, "chunk_overlap": 50},
+          "depends_on": ["step_extract"]
+        },
+        {
+          "id": "step_notify",
+          "name": "Notify Ingestion Completed",
+          "action": "send_notification",
+          "params": {"channel": "IN_APP", "title": "Document Indexing Completed"},
+          "depends_on": ["step_index"]
+        }
+      ]
+    }',
+    TRUE
+  ),
+  (
+    '70000000-0000-0000-0000-000000000002',
+    '00000000-0000-0000-0000-000000000001',
+    'Security Audit Verification & Alerting',
+    'Verifies SHA-256 cryptographic audit hash chains and issues alert on any anomaly detection.',
+    'SCHEDULE',
+    '{
+      "schedule": "0 */4 * * *",
+      "steps": [
+        {
+          "id": "step_audit_verify",
+          "name": "Verify Audit Log Hashes",
+          "action": "audit_verify",
+          "params": {"max_entries": 1000}
+        },
+        {
+          "id": "step_eval_risk",
+          "name": "Evaluate Chain Integrity",
+          "action": "risk_evaluate",
+          "params": {"threshold": 1.0},
+          "depends_on": ["step_audit_verify"]
+        },
+        {
+          "id": "step_alert",
+          "name": "Dispatch Audit Status Notification",
+          "action": "send_notification",
+          "params": {"channel": "IN_APP", "title": "Audit Chain Verification Succeeded"},
+          "depends_on": ["step_eval_risk"]
+        }
+      ]
+    }',
+    TRUE
+  )
 ON CONFLICT DO NOTHING;
-
--- 4. Orders, Products & Vendors
-INSERT INTO orders (id, organization_id, order_number, customer_name, status, total_amount)
-VALUES
-  ('40000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'ORD-2026-001', 'Acme Aerospace', 'PENDING', 24500.00),
-  ('40000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'ORD-2026-002', 'Apex Logistics', 'PENDING', 8900.50),
-  ('40000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'ORD-2026-003', 'BioCore Systems', 'COMPLETED', 14320.00)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO products (id, organization_id, name, sku, category, price, usage_count, is_active)
-VALUES
-  ('50000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Precision Servo Actuator', 'ACT-100', 'Actuators', 1250.00, 340, TRUE),
-  ('50000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'Industrial LiDAR Sensor', 'LDR-500', 'Sensors', 3400.00, 185, TRUE),
-  ('50000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'Hydraulic Pressure Valve', 'VLV-020', 'Hydraulics', 450.00, 520, TRUE)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO vendors (id, organization_id, name, contact_email, total_purchases, rating)
-VALUES
-  ('60000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'CyberAlloy Steelworks', 'sales@cyberalloy.com', 85400.00, 4.8),
-  ('60000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'NexGen Polymers Corp', 'orders@nexgenpolymers.com', 41200.00, 4.5)
-ON CONFLICT DO NOTHING;
-

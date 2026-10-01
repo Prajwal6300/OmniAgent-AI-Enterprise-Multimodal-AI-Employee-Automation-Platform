@@ -6,7 +6,7 @@ reasoning synthesis, approval pauses, verification, and audit.
 
 import time
 import uuid
-from typing import Any
+from typing import Any, ClassVar
 
 from langgraph.graph import END, StateGraph
 
@@ -186,14 +186,14 @@ class Orchestrator:
     pause-for-approval state preservation, and cryptographic resume execution.
     """
 
-    _active_states: dict[str, OrchestrationState] = {}
-    _compiled_graph: Any = None
+    _active_states: ClassVar[dict[str, OrchestrationState]] = {}
+    _compiled_graph: ClassVar[Any] = None
 
     def __init__(self):
         if Orchestrator._compiled_graph is None:
             try:
                 Orchestrator._compiled_graph = build_orchestration_graph()
-            except Exception as e:
+            except (ImportError, RuntimeError, AttributeError, ValueError) as e:
                 logger.warning("langgraph_compilation_fallback", error=str(e))
                 Orchestrator._compiled_graph = None
 

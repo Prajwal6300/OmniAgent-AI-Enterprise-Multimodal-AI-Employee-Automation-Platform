@@ -11,12 +11,14 @@ import pytest
 from PIL import Image
 
 from agents.vision.agent import VisionAgent
-from agents.vision.analyzer import MockVisionProvider
-from agents.vision.detector import MockObjectDetector
 from agents.vision.exceptions import VisionValidationError
-from agents.vision.ocr import MockOCRProvider
 from agents.vision.preprocessing import validate_image_magic_bytes
 from agents.vision.security import detect_prompt_injection
+from tests.fixtures.mock_providers import (
+    MockObjectDetector,
+    MockOCRProvider,
+    MockVisionProvider,
+)
 
 
 def test_adversarial_image_ocr_text_does_not_override_instructions():

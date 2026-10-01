@@ -4,6 +4,7 @@ from uuid import UUID
 from agents.document.agent import DocumentAgent
 from agents.document.schemas import DocumentAnalysisResult
 from fastapi import HTTPException, UploadFile, status
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -175,7 +176,7 @@ class DocumentService:
                 pipeline = RAGIngestionPipeline(self.session)
                 pages_data = [p.model_dump() for p in result.pages]
                 await pipeline.index_document(doc, pages=pages_data)
-            except Exception as index_err:
+            except (SQLAlchemyError, RuntimeError, ValueError, OSError) as index_err:
                 logger.error(
                     "rag_indexing_trigger_failed",
                     document_id=str(doc.id),

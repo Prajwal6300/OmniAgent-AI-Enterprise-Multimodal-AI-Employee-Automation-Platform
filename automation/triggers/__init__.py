@@ -1,8 +1,8 @@
 from automation.triggers.base import (
-    Trigger,
-    ManualTrigger,
     EventTrigger,
+    ManualTrigger,
     ScheduleTrigger,
+    Trigger,
 )
 
-__all__ = ["Trigger", "ManualTrigger", "EventTrigger", "ScheduleTrigger"]
+__all__ = ["EventTrigger", "ManualTrigger", "ScheduleTrigger", "Trigger"]

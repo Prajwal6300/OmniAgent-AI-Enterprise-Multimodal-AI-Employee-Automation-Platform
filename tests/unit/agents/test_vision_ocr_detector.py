@@ -6,9 +6,10 @@ and honest reporting of unconfigured engines (no fake results).
 
 import pytest
 
-from agents.vision.detector import MockObjectDetector, SystemObjectDetector
-from agents.vision.ocr import MockOCRProvider, SystemOCRProvider
+from agents.vision.detector import SystemObjectDetector
+from agents.vision.ocr import SystemOCRProvider
 from agents.vision.schemas import ProcessorStatus
+from tests.fixtures.mock_providers import MockObjectDetector, MockOCRProvider
 
 # --- 1. OCR Provider Tests ---
 

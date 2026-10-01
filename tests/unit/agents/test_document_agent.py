@@ -1,7 +1,8 @@
 import io
+
+import docx
 import pytest
 from reportlab.pdfgen import canvas
-import docx
 
 from agents.document.agent import DocumentAgent
 from agents.document.exceptions import DocumentValidationError
@@ -11,16 +12,12 @@ from agents.document.extractor import (
     extract_text_from_txt,
     validate_file_metadata,
 )
-from agents.document.providers import MockDocumentLLMProvider
 from agents.document.router import (
     extract_deterministic_invoice,
-    extract_deterministic_policy,
-    extract_deterministic_report,
-    extract_deterministic_technical_manual,
     heuristic_classify_document,
 )
 from agents.document.schemas import DocumentPage, DocumentType
-
+from tests.fixtures.mock_providers import MockDocumentLLMProvider
 
 # --- Test Helpers ---
 
@@ -46,7 +43,7 @@ def make_blank_pdf(pages: int = 1) -> bytes:
     return buf.getvalue()
 
 
-def make_docx(headings: list[str], paragraphs: list[str], table_data: list[list[str]] = None) -> bytes:
+def make_docx(headings: list[str], paragraphs: list[str], table_data: list[list[str]] | None = None) -> bytes:
     doc = docx.Document()
     for h in headings:
         doc.add_heading(h, level=1)
@@ -117,7 +114,7 @@ def test_malicious_filename():
 
 def test_pdf_text_extraction():
     pdf_bytes = make_pdf(["Invoice INV-2024-001", "Subtotal: $1,200.00 Total: $1,200.00"])
-    pages, needs_ocr, warn = extract_text_from_pdf(pdf_bytes)
+    pages, needs_ocr, _warn = extract_text_from_pdf(pdf_bytes)
     assert len(pages) == 2
     assert pages[0].page_number == 1
     assert "INV-2024-001" in pages[0].text
@@ -138,7 +135,7 @@ def test_docx_text_extraction():
         paragraphs=["All full-time employees are entitled to 20 days paid leave."],
         table_data=[["Leave Type", "Days"], ["Annual", "20"], ["Sick", "10"]]
     )
-    pages, sections, tables = extract_text_from_docx(docx_bytes)
+    _pages, sections, tables = extract_text_from_docx(docx_bytes)
     assert len(sections) == 1
     assert "Leave Entitlement" in sections[0].title
     assert len(tables) == 1
@@ -176,35 +173,35 @@ def test_corrupted_pdf_handling():
 
 def test_classify_invoice():
     text = "TAX INVOICE\nVendor: Acme Corp\nBill To: Enterprise Inc\nSubtotal: $500\nTotal Amount: $550\nBalance Due"
-    doc_type, conf, title = heuristic_classify_document(text, "INV-001.pdf")
+    doc_type, conf, _title = heuristic_classify_document(text, "INV-001.pdf")
     assert doc_type == DocumentType.INVOICE
     assert conf >= 0.90
 
 
 def test_classify_policy():
     text = "Company Leave Policy\nEligibility: All employees\nAnnual sick leave entitlement and rules."
-    doc_type, conf, title = heuristic_classify_document(text, "leave_policy.docx")
+    doc_type, conf, _title = heuristic_classify_document(text, "leave_policy.docx")
     assert doc_type == DocumentType.POLICY
     assert conf >= 0.90
 
 
 def test_classify_report():
     text = "Quarterly Financial Analysis\nExecutive Summary\nKey findings indicate revenue growth of 18%."
-    doc_type, conf, title = heuristic_classify_document(text, "q3_report.pdf")
+    doc_type, conf, _title = heuristic_classify_document(text, "q3_report.pdf")
     assert doc_type == DocumentType.REPORT
     assert conf >= 0.90
 
 
 def test_classify_technical_manual():
     text = "Machine User Manual\nSafety Instructions\nWarning: Disconnect power before maintenance."
-    doc_type, conf, title = heuristic_classify_document(text, "manual.txt")
+    doc_type, conf, _title = heuristic_classify_document(text, "manual.txt")
     assert doc_type == DocumentType.TECHNICAL_MANUAL
     assert conf >= 0.90
 
 
 def test_classify_unknown():
     text = "xyz 123"
-    doc_type, conf, title = heuristic_classify_document(text, "misc.txt")
+    doc_type, conf, _title = heuristic_classify_document(text, "misc.txt")
     assert doc_type == DocumentType.UNKNOWN
     assert conf == 0.0
 
@@ -292,7 +289,7 @@ async def test_technical_manual_safety_extraction():
 async def test_anti_hallucination_missing_fields():
     sparse_text = "TAX INVOICE\nSome billing text without explicit total or tax."
     pages = [DocumentPage(page_number=1, text=sparse_text)]
-    inv_data, sources = extract_deterministic_invoice(sparse_text, pages)
+    inv_data, _sources = extract_deterministic_invoice(sparse_text, pages)
 
     assert inv_data.total == "Not found in the provided document."
     assert inv_data.tax == "Not found in the provided document."

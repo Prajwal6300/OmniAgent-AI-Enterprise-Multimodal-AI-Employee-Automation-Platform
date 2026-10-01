@@ -5,15 +5,14 @@ ENV PYTHONUNBUFFERED=1 \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    curl \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-COPY backend/requirements.txt ./
+COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend/ .
-COPY agents/ /app/agents/
-COPY automation/ /app/automation/
-COPY multimodal/ /app/multimodal/
-COPY tools/ /app/tools/
+COPY . .
 
-CMD ["celery", "-A", "app.workers", "worker", "--loglevel=info"]
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

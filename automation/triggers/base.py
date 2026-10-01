@@ -4,7 +4,6 @@ Clean abstraction layer for MANUAL, EVENT, and SCHEDULE workflow triggers.
 """
 
 from abc import ABC, abstractmethod
-from datetime import UTC, datetime
 from typing import Any
 
 
@@ -14,7 +13,6 @@ class Trigger(ABC):
     @abstractmethod
     async def evaluate(self, payload: dict[str, Any], context: dict[str, Any]) -> bool:
         """Evaluates whether trigger conditions are met to fire workflow execution."""
-        pass
 
 
 class ManualTrigger(Trigger):

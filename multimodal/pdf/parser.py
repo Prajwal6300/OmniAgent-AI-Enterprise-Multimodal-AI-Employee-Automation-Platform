@@ -1,7 +1,8 @@
-from typing import Dict, Any
+from typing import Any
+
 
 class PDFParser:
-    def parse_metadata(self, file_path: str) -> Dict[str, Any]:
+    def parse_metadata(self, file_path: str) -> dict[str, Any]:
         return {
             "source": file_path,
             "page_count": 1,

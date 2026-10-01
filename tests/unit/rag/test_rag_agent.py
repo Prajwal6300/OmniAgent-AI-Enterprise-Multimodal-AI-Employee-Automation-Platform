@@ -1,15 +1,15 @@
 import pytest
+
 from agents.rag.agent import RAGAgent
 from agents.rag.context import ContextBuilder
-from agents.rag.embeddings import DeterministicEmbeddingProvider
 from agents.rag.prompts import RAG_FALLBACK_ANSWER
-from agents.rag.providers import MockRAGLLMProvider
 from agents.rag.reranker import SimpleRelevanceReranker
 from agents.rag.retriever import InMemoryVectorRetriever
 from agents.rag.schemas import RetrievedChunk
 from agents.supervisor import SupervisorAgent
 from agents.supervisor.router import deterministic_classify
 from agents.supervisor.schemas import AgentTarget, TaskType
+from tests.fixtures.embeddings import DeterministicEmbeddingProvider
 
 
 @pytest.fixture
@@ -220,7 +220,8 @@ async def test_supervisor_delegation_to_rag_agent(sample_retriever):
     rag_response = await supervisor.run_rag_agent(
         question="What is the leave policy?",
         organization_id="org-alpha-1234",
-        retriever=sample_retriever
+        retriever=sample_retriever,
+        embedding_provider=DeterministicEmbeddingProvider(),
     )
     assert rag_response.grounded is True
     assert len(rag_response.citations) > 0
