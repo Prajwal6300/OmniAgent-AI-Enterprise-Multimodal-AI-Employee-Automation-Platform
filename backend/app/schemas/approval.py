@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ApprovalDecision(BaseModel):
@@ -10,6 +10,8 @@ class ApprovalDecision(BaseModel):
     reason: str | None = None
 
 class ApprovalRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     action_type: str
     risk_level: str
@@ -20,6 +22,3 @@ class ApprovalRead(BaseModel):
     decided_by: UUID | None = None
     decision_reason: str | None = None
     created_at: datetime
-
-    class Config:
-        from_attributes = True

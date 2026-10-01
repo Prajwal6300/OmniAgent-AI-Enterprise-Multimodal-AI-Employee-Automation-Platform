@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class WorkflowCreate(BaseModel):
@@ -24,6 +24,8 @@ class WorkflowUpdate(BaseModel):
 
 
 class WorkflowRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     organization_id: UUID
     name: str
@@ -35,15 +37,14 @@ class WorkflowRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class WorkflowRunCreate(BaseModel):
     input_payload: dict[str, Any] = Field(default_factory=dict)
 
 
 class WorkflowRunRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     workflow_id: UUID
     organization_id: UUID
@@ -54,6 +55,3 @@ class WorkflowRunRead(BaseModel):
     started_at: datetime
     finished_at: datetime | None = None
     error_details: str | None = None
-
-    class Config:
-        from_attributes = True

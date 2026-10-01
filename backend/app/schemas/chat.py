@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class MessageCreate(BaseModel):
@@ -16,6 +16,8 @@ class Citation(BaseModel):
     text_snippet: str
 
 class MessageRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     conversation_id: UUID
     sender_type: str
@@ -24,15 +26,11 @@ class MessageRead(BaseModel):
     metadata: dict | None = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 class ConversationRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     title: str
     agent_type: str
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True

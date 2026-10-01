@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 
 class UserBase(BaseModel):
@@ -16,12 +16,11 @@ class UserCreate(UserBase):
     department_id: UUID | None = None
 
 class UserRead(UserBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     organization_id: UUID
     department_id: UUID | None = None
     role_id: UUID
     is_verified: bool
     created_at: datetime
-
-    class Config:
-        from_attributes = True

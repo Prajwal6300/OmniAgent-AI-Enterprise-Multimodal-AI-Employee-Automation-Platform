@@ -57,7 +57,20 @@ miniodata/
 ollamadata/
 chromadata/
 media_uploads/
+# Test & Coverage
+backend/.pytest_cache/
+.coverage*
+coverage.xml
+*.log
+
+# Databases, Storage & Cache
 storage/
+pgdata/
+redisdata/
+miniodata/
+ollamadata/
+chromadata/
+media_uploads/
 
 # IDE & OS
 .vscode/
@@ -67,8 +80,3 @@ storage/
 .DS_Store
 Thumbs.db
 desktop.ini
-
-# Cleanup & Temporary Review
-CLEANUP_REPORT.md
-
-
