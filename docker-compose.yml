@@ -38,8 +38,8 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: omniagent-backend
     restart: unless-stopped
     environment:
@@ -59,8 +59,8 @@ services:
 
   worker:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: omniagent-worker
     restart: unless-stopped
     command: ["celery", "-A", "app.workers.celery_app", "worker", "--loglevel=info"]
@@ -78,8 +78,8 @@ services:
 
   beat:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: omniagent-beat
     restart: unless-stopped
     command: ["celery", "-A", "app.workers.celery_app", "beat", "--loglevel=info"]

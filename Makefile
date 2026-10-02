@@ -3,11 +3,11 @@
 help:
 	@echo "OmniAgent AI Development Commands:"
 	@echo "  make setup         Install all backend and frontend dependencies"
-	@echo "  make dev           Start both backend and frontend development servers"
+	@echo "  make dev           Start infrastructure containers and print commands"
 	@echo "  make dev-backend   Start FastAPI server with auto-reload"
 	@echo "  make dev-frontend  Start Vite React frontend"
-	@echo "  make test          Run test suite across backend, agents, and automation"
-	@echo "  make lint          Run ruff and eslint"
+	@echo "  make test          Run pytest suite across backend"
+	@echo "  make lint          Run ruff and frontend build check"
 	@echo "  make format        Run formatting tools"
 	@echo "  make migrate       Run database migrations"
 	@echo "  make seed          Seed database with development data"
@@ -25,19 +25,19 @@ dev-frontend:
 	cd frontend && npm run dev
 
 dev:
-	docker compose up -d postgres redis minio
-	@echo "Start backend: uvicorn app.main:app --reload (in backend/)"
-	@echo "Start frontend: npm run dev (in frontend/)"
+	docker compose up -d postgres redis
+	@echo "Start backend: cd backend && uvicorn app.main:app --reload"
+	@echo "Start frontend: cd frontend && npm run dev"
 
 test:
-	pytest tests/ -v
+	pytest backend/tests/ -v
 
 lint:
-	ruff check backend agents automation multimodal tools tests
-	cd frontend && npm run lint
+	ruff check backend
+	cd frontend && npm run build
 
 format:
-	ruff format backend agents automation multimodal tools tests
+	ruff format backend
 
 migrate:
 	cd backend && alembic upgrade head

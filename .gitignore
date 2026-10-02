@@ -64,7 +64,8 @@ coverage.xml
 *.log
 
 # Databases, Storage & Cache
-/storage/
+storage/
+backend/storage/
 pgdata/
 redisdata/
 miniodata/
