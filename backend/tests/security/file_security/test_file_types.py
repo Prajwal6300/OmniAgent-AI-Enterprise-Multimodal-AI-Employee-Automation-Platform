@@ -1,4 +1,4 @@
-from backend.app.utils.file_utils import get_file_extension
+from app.utils.file_utils import get_file_extension
 
 
 def test_file_extension_check():

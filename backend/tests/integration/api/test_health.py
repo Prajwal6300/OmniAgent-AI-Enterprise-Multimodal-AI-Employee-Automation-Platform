@@ -1,5 +1,5 @@
 import pytest
-from backend.app.api.v1.health import health_check
+from app.api.v1.health import health_check
 
 
 @pytest.mark.asyncio

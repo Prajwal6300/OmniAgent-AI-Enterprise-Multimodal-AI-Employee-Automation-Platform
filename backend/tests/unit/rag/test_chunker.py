@@ -1,4 +1,4 @@
-from backend.app.services.rag.ingestion.chunker import TextChunker
+from app.services.rag.ingestion.chunker import TextChunker
 
 
 def test_text_chunker_bounds():

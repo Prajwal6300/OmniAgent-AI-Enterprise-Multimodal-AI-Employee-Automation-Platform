@@ -90,6 +90,10 @@ def get_redis_client():
     if _redis_instance is not None:
         return _redis_instance
 
+    if getattr(settings, "ENVIRONMENT", "") == "test":
+        _redis_instance = InMemoryRedis()
+        return _redis_instance
+
     try:
         import redis.asyncio as aioredis  # type: ignore[import-untyped]
         _redis_instance = aioredis.from_url(
