@@ -4,19 +4,9 @@ on:
   push:
     paths:
       - 'backend/**'
-      - 'agents/**'
-      - 'automation/**'
-      - 'multimodal/**'
-      - 'tools/**'
-      - 'tests/**'
   pull_request:
     paths:
       - 'backend/**'
-      - 'agents/**'
-      - 'automation/**'
-      - 'multimodal/**'
-      - 'tools/**'
-      - 'tests/**'
 
 jobs:
   test:
@@ -55,4 +45,4 @@ jobs:
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_omniagent
           REDIS_URL: redis://localhost:6379/0
-        run: pytest tests/ -v --cov=backend/app --cov-report=xml
+        run: pytest backend/tests/ -v --cov=backend/app --cov-report=xml
