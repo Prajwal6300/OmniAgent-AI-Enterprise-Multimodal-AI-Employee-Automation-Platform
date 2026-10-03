@@ -135,34 +135,86 @@ class LocalStorageService(BaseStorageService):
 
 class SupabaseStorageService(BaseStorageService):
     """
-    Production object storage service backed by Supabase Storage (S3-compatible API).
+    Production object storage service backed by S3/R2-compatible object storage.
     Provides tenant-isolated object key paths, checksum verification, and traversal guards.
     """
 
     def __init__(self):
-        import boto3
-        from botocore.config import Config
+        import hashlib
 
-        endpoint = getattr(settings, "SUPABASE_S3_ENDPOINT", "")
-        region = getattr(settings, "SUPABASE_S3_REGION", "us-east-1")
-        access_key = getattr(settings, "SUPABASE_S3_ACCESS_KEY", "")
-        secret_key = getattr(settings, "SUPABASE_S3_SECRET_KEY", "")
-        self.bucket = getattr(settings, "SUPABASE_BUCKET", "omniagent-documents")
+        endpoint = settings.S3_ENDPOINT
+        region = settings.S3_REGION or "auto"
+        access_key = settings.S3_ACCESS_KEY
+        secret_key = settings.S3_SECRET_KEY
+        self.bucket = settings.S3_BUCKET
 
         if not endpoint or not access_key or not secret_key:
             raise ValueError(
-                "Supabase Storage credentials missing. Set SUPABASE_S3_ENDPOINT, "
-                "SUPABASE_S3_ACCESS_KEY, and SUPABASE_S3_SECRET_KEY."
+                "S3/R2 storage credentials missing. Set S3_ENDPOINT, "
+                "S3_ACCESS_KEY, and S3_SECRET_KEY."
             )
 
-        self._s3_client = boto3.client(
-            "s3",
-            endpoint_url=endpoint,
-            region_name=region,
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-            config=Config(signature_version="s3v4"),
-        )
+        self._s3_client = None
+        self._endpoint = endpoint
+        self._region = region
+        self._access_key = access_key
+        self._secret_key = secret_key
+        self._bucket = self.bucket
+
+    async def _get_client(self):
+        if self._s3_client is None:
+            import aiobotocore.session
+            from botocore.config import Config
+
+            session = aiobotocore.session.get_session()
+            kwargs = {
+                "region_name": self._region,
+                "endpoint_url": self._endpoint,
+                "aws_access_key_id": self._access_key,
+                "aws_secret_access_key": self._secret_key,
+            }
+            config = Config(
+                signature_version="s3v4",
+                s3={"addressing_style": "path"},
+            )
+            self._s3_client = session.create_client("s3", config=config, **kwargs)
+        return self._s3_client
+
+    async def save_file(
+        self,
+        file_data: bytes,
+        original_filename: str,
+        org_id: UUID
+    ) -> tuple[str, str, int]:
+        safe_name = sanitize_filename(original_filename)
+        file_uuid = uuid.uuid4().hex
+        key = f"{org_id}/{file_uuid}_{safe_name}"
+
+        checksum = hashlib.sha256(file_data).hexdigest()
+        file_size = len(file_data)
+
+        async with await self._get_client() as client:
+            def _upload():
+                client.put_object(
+                    Bucket=self._bucket,
+                    Key=key,
+                    Body=file_data,
+                    Metadata={
+                        "checksum-sha256": checksum,
+                        "organization-id": str(org_id),
+                        "original-filename": safe_name,
+                    }
+                )
+
+            await asyncio.to_thread(_upload)
+            logger.info(
+                "file_stored_s3",
+                storage_path=key,
+                size_bytes=file_size,
+                checksum=checksum,
+                org_id=str(org_id)
+            )
+            return key, checksum, file_size
 
     async def save_file(
         self,
@@ -248,9 +300,9 @@ def get_storage_service(provider: str | None = None) -> BaseStorageService:
     if env == "production" and selected_provider == "local":
         raise RuntimeError(
             "Production security error: STORAGE_PROVIDER cannot be 'local' in production. "
-            "Configure Supabase Storage ('supabase')."
+            "Configure S3/R2 storage ('s3')."
         )
 
-    if selected_provider == "supabase":
+    if selected_provider == "s3":
         return SupabaseStorageService()
     return LocalStorageService()
