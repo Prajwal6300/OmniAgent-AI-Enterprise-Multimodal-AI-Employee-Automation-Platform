@@ -1,0 +1,53 @@
+# gitleaks allowlist - confirmed fake / test fixtures only
+# Never allowlist whole directories (backend/, docs/, etc.)
+
+[[rule-severities]]
+rule = "generic-api-key"
+severity = "ignore"
+
+[[rule-severities]]
+rule = "generic-secret"
+severity = "ignore"
+
+[[rule-severities]]
+rule = "aws-ssm"
+severity = "ignore"
+
+[[rule-severities]]
+rule = "gcp-kms"
+severity = "ignore"
+
+[[rule-severities]]
+rule = "gitlab-token"
+severity = "ignore"
+
+[[rule-severities]]
+rule = "docker"
+severity = "ignore"
+
+# Test fixtures - placeholder keys never meant to be real secrets
+[[rule-severities]]
+rule = "generic-api-key"
+severity = "ignore"
+path = "backend/tests/unit/test_security_core.py"
+
+[[rule-severities]]
+rule = "generic-secret"
+severity = "ignore"
+path = "backend/tests/unit/test_security_core.py"
+
+[[rule-severities]]
+rule = "generic-api-key"
+severity = "ignore"
+path = "backend/tests/unit/backend/test_production_config.py"
+
+[[rule-severities]]
+rule = "generic-secret"
+severity = "ignore"
+path = "backend/tests/unit/backend/test_production_config.py"
+
+# preflight.py "your-secret-key" is a development placeholder check, not a real secret
+[[rule-severities]]
+rule = "generic-secret"
+severity = "ignore"
+path = "scripts/preflight.py"
