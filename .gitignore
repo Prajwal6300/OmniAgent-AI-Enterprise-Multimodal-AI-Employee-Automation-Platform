@@ -81,3 +81,5 @@ media_uploads/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+test_output.txt
