@@ -52,15 +52,22 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "text-embedding-3-large"
     EMBEDDING_DIMENSION: int = 1536
 
-    # 6. Object Storage (Supabase S3 in production, local in dev)
-    STORAGE_PROVIDER: Literal["supabase", "local"] = "local"
+    # 6. Object Storage (S3/R2 compatible, local in dev)
+    STORAGE_PROVIDER: Literal["s3", "local"] = "local"
     STORAGE_LOCAL_DIR: str = "storage/documents"
     MAX_UPLOAD_SIZE_BYTES: int = 25 * 1024 * 1024  # 25 MB
-    SUPABASE_S3_ENDPOINT: str = ""
-    SUPABASE_S3_REGION: str = "us-east-1"
-    SUPABASE_S3_ACCESS_KEY: str = ""
-    SUPABASE_S3_SECRET_KEY: str = ""
-    SUPABASE_BUCKET: str = "documents"
+    S3_ENDPOINT: str = ""
+    S3_REGION: str = "auto"
+    S3_ACCESS_KEY: str = ""
+    S3_SECRET_KEY: str = ""
+    S3_BUCKET: str = "documents"
+
+    # Deprecated Supabase aliases — accepted with a logged warning
+    SUPABASE_S3_ENDPOINT: str = Field(default="", alias="SUPABASE_S3_ENDPOINT")
+    SUPABASE_S3_REGION: str = Field(default="", alias="SUPABASE_S3_REGION")
+    SUPABASE_S3_ACCESS_KEY: str = Field(default="", alias="SUPABASE_S3_ACCESS_KEY")
+    SUPABASE_S3_SECRET_KEY: str = Field(default="", alias="SUPABASE_S3_SECRET_KEY")
+    SUPABASE_BUCKET: str = Field(default="documents", alias="SUPABASE_BUCKET")
 
     # 7. Optional Integrations (SMTP & Sentry)
     SMTP_HOST: str = ""
@@ -105,6 +112,37 @@ class Settings(BaseSettings):
     )
 
     @model_validator(mode="after")
+    def map_deprecated_supabase_aliases(self) -> "Settings":
+        """Map deprecated SUPABASE_S3_* env vars to new S3_* names with a warning."""
+        import warnings
+
+        supabase_to_s3 = {
+            self.SUPABASE_S3_ENDPOINT: "S3_ENDPOINT",
+            self.SUPABASE_S3_REGION: "S3_REGION",
+            self.SUPABASE_S3_ACCESS_KEY: "S3_ACCESS_KEY",
+            self.SUPABASE_S3_SECRET_KEY: "S3_SECRET_KEY",
+        }
+
+        any_mapped = False
+        for supabase_val, new_attr in supabase_to_s3.items():
+            if supabase_val and not getattr(self, new_attr, None):
+                setattr(self, new_attr, supabase_val)
+                any_mapped = True
+
+        if any_mapped and self.STORAGE_PROVIDER != "supabase":
+            warnings.warn(
+                "Deprecated SUPABASE_S3_* environment variables detected. "
+                "Migrate to S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY, S3_SECRET_KEY.",
+                UserWarning,
+            )
+
+        # Also handle the bucket: if SUPABASE_BUCKET was set and S3_BUCKET wasn't
+        if self.SUPABASE_BUCKET and not self.S3_BUCKET:
+            self.S3_BUCKET = self.SUPABASE_BUCKET
+
+        return self
+
+    @model_validator(mode="after")
     def validate_production_configuration(self) -> "Settings":
         """Fail fast at startup if configuration is invalid for production."""
         if self.ENVIRONMENT == "production":
@@ -138,9 +176,43 @@ class Settings(BaseSettings):
 
             # 4. Storage provider requirement
             if self.STORAGE_PROVIDER == "local":
-                raise ValueError("In production, STORAGE_PROVIDER cannot be 'local'. Must be 'supabase'.")
-            if not self.SUPABASE_S3_ENDPOINT or not self.SUPABASE_S3_ACCESS_KEY or not self.SUPABASE_S3_SECRET_KEY:
-                raise ValueError("In production, SUPABASE_S3_ENDPOINT, SUPABASE_S3_ACCESS_KEY, and SUPABASE_S3_SECRET_KEY are required.")
+                if self.ENVIRONMENT == "production":
+                    raise ValueError("In production, STORAGE_PROVIDER cannot be 'local'.")
+                else:
+                    import warnings
+                    warnings.warn(
+                        "STORAGE_PROVIDER=local is only allowed in development. "
+                        "Set STORAGE_PROVIDER=s3 for production deployments.",
+                        UserWarning,
+                    )
+            if self.STORAGE_PROVIDER == "supabase":
+                import warnings
+                warnings.warn(
+                    "STORAGE_PROVIDER=supabase is deprecated. Use STORAGE_PROVIDER=s3 instead.",
+                    UserWarning,
+                )
+            if self.STORAGE_PROVIDER not in ("s3", "local"):
+                raise ValueError("STORAGE_PROVIDER must be one of: s3, local.")
+
+            # Check that S3 env vars are set when STORAGE_PROVIDER is s3
+            if self.STORAGE_PROVIDER == "s3":
+                if not self.S3_ENDPOINT:
+                    raise ValueError("When STORAGE_PROVIDER is 's3', S3_ENDPOINT must be set.")
+                if not self.S3_ACCESS_KEY:
+                    raise ValueError("When STORAGE_PROVIDER is 's3', S3_ACCESS_KEY must be set.")
+                if not self.S3_SECRET_KEY:
+                    raise ValueError("When STORAGE_PROVIDER is 's3', S3_SECRET_KEY must be set.")
+                if not self.S3_BUCKET:
+                    raise ValueError("When STORAGE_PROVIDER is 's3', S3_BUCKET must be set.")
+
+            # Log deprecation warnings for old Supabase aliases
+            if self.SUPABASE_S3_ENDPOINT and self.STORAGE_PROVIDER != "supabase":
+                import warnings
+                warnings.warn(
+                    "SUPABASE_S3_ENDPOINT is set but STORAGE_PROVIDER is not 'supabase'. "
+                    "SUPABASE_S3_* names are deprecated; use S3_ENDPOINT, S3_REGION, etc. instead.",
+                    UserWarning,
+                )
 
             # 5. Embedding dimension check
             if self.EMBEDDING_DIMENSION != 1536:
