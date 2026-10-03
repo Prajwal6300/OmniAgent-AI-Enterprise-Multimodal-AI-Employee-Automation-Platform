@@ -1,4 +1,5 @@
 import pytest
+
 from app.api.v1.health import health_check
 
 

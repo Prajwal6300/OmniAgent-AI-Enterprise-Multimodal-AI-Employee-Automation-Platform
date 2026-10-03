@@ -6,8 +6,10 @@ Expected behavior: 403 Forbidden or 404 Not Found when requesting cross-tenant r
 """
 
 import uuid
+
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db_session
@@ -25,7 +27,7 @@ class CrossTenantSession:
     async def execute(self, stmt):
         try:
             params = stmt.compile().params
-        except Exception:
+        except SQLAlchemyError:  # stmt.compile() may raise if dialect/params incompatible; fall back to empty params
             params = {}
 
         class Result:
