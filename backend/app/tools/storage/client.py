@@ -7,6 +7,7 @@ and S3/R2-compatible object storage (production) with path-traversal guards.
 import asyncio
 import hashlib
 import logging
+import os
 from pathlib import Path
 from uuid import UUID
 
@@ -111,18 +112,15 @@ class StorageClient:
                 safe_name = file_path.lstrip("/\\")
                 key = safe_name
 
-                def _upload():
-                    s3_client.put_object(
-                        Bucket=bucket,
-                        Key=key,
-                        Body=data,
-                        Metadata={
-                            "checksum-sha256": hashlib.sha256(data).hexdigest(),
-                            "organization-id": str(organization_id),
-                        },
-                    )
-
-                await asyncio.to_thread(_upload)
+                await s3_client.put_object(
+                    Bucket=bucket,
+                    Key=key,
+                    Body=data,
+                    Metadata={
+                        "checksum-sha256": hashlib.sha256(data).hexdigest(),
+                        "organization-id": str(organization_id),
+                    },
+                )
                 logger.info(
                     "file_stored_s3",
                     key=key,
@@ -180,14 +178,11 @@ class StorageClient:
             async with aiobotocore.session.get_session().create_client(
                 "s3", config=config, **kwargs
             ) as s3_client:
-                def _download():
-                    response = s3_client.get_object(
-                        Bucket=bucket,
-                        Key=file_path.lstrip("/\\"),
-                    )
-                    return response["Body"].read()
-
-                return await asyncio.to_thread(_download)
+                response = await s3_client.get_object(
+                    Bucket=bucket,
+                    Key=file_path.lstrip("/\\"),
+                )
+                return await response["Body"].read()
         else:
             target = self._resolve_safe_path(organization_id, file_path)
             if not target.exists() or not target.is_file():
@@ -228,14 +223,11 @@ class StorageClient:
             async with aiobotocore.session.get_session().create_client(
                 "s3", config=config, **kwargs
             ) as s3_client:
-                def _delete():
-                    s3_client.delete_object(
-                        Bucket=bucket,
-                        Key=file_path.lstrip("/\\"),
-                    )
-                    return True
-
-                return await asyncio.to_thread(_delete)
+                await s3_client.delete_object(
+                    Bucket=bucket,
+                    Key=file_path.lstrip("/\\"),
+                )
+                return True
         else:
             target = self._resolve_safe_path(organization_id, file_path)
             if target.exists() and target.is_file():

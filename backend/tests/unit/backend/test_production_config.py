@@ -39,10 +39,11 @@ def test_production_fails_on_default_secrets():
             DATABASE_URL="postgresql+asyncpg://postgres:pass@aws-0-us-east-1.pooler.supabase.com:6543/postgres?ssl=require",
             REDIS_URL="rediss://default:pass@redis.render.com:6379",
             OPENAI_API_KEY="sk-valid-openai-key-for-test",
-            STORAGE_PROVIDER="supabase",
-            SUPABASE_S3_ENDPOINT="https://test.storage.supabase.co/storage/v1/s3",
-            SUPABASE_S3_ACCESS_KEY="valid_access_key",
-            SUPABASE_S3_SECRET_KEY="valid_secret_key",
+            STORAGE_PROVIDER="s3",
+            S3_ENDPOINT="https://test.storage.supabase.co/storage/v1/s3",
+            S3_BUCKET="test-bucket",
+            S3_ACCESS_KEY="valid_access_key",
+            S3_SECRET_KEY="valid_secret_key",
             EMBEDDING_DIMENSION=1536,
         )
 
@@ -59,10 +60,11 @@ def test_production_fails_on_identical_secrets():
             DATABASE_URL="postgresql+asyncpg://postgres:pass@aws-0-us-east-1.pooler.supabase.com:6543/postgres?ssl=require",
             REDIS_URL="rediss://default:pass@redis.render.com:6379",
             OPENAI_API_KEY="sk-valid-openai-key-for-test",
-            STORAGE_PROVIDER="supabase",
-            SUPABASE_S3_ENDPOINT="https://test.storage.supabase.co/storage/v1/s3",
-            SUPABASE_S3_ACCESS_KEY="valid_access_key",
-            SUPABASE_S3_SECRET_KEY="valid_secret_key",
+            STORAGE_PROVIDER="s3",
+            S3_ENDPOINT="https://test.storage.supabase.co/storage/v1/s3",
+            S3_BUCKET="test-bucket",
+            S3_ACCESS_KEY="valid_access_key",
+            S3_SECRET_KEY="valid_secret_key",
             EMBEDDING_DIMENSION=1536,
         )
 
@@ -94,10 +96,11 @@ def test_production_fails_on_wrong_embedding_dimension():
             DATABASE_URL="postgresql+asyncpg://postgres:pass@aws-0-us-east-1.pooler.supabase.com:6543/postgres?ssl=require",
             REDIS_URL="rediss://default:pass@redis.render.com:6379",
             OPENAI_API_KEY="sk-valid-openai-key-for-test",
-            STORAGE_PROVIDER="supabase",
-            SUPABASE_S3_ENDPOINT="https://test.storage.supabase.co/storage/v1/s3",
-            SUPABASE_S3_ACCESS_KEY="valid_access_key",
-            SUPABASE_S3_SECRET_KEY="valid_secret_key",
+            STORAGE_PROVIDER="s3",
+            S3_ENDPOINT="https://test.storage.supabase.co/storage/v1/s3",
+            S3_BUCKET="test-bucket",
+            S3_ACCESS_KEY="valid_access_key",
+            S3_SECRET_KEY="valid_secret_key",
             EMBEDDING_DIMENSION=768,
         )
 
@@ -112,12 +115,13 @@ def test_production_succeeds_with_valid_configuration():
         DATABASE_URL="postgresql+asyncpg://postgres:pass@aws-0-us-east-1.pooler.supabase.com:6543/postgres?ssl=require",
         REDIS_URL="rediss://default:pass@redis.render.com:6379",
         OPENAI_API_KEY="sk-valid-openai-key-for-test",
-        STORAGE_PROVIDER="supabase",
-        SUPABASE_S3_ENDPOINT="https://test.storage.supabase.co/storage/v1/s3",
-        SUPABASE_S3_ACCESS_KEY="valid_access_key",
-        SUPABASE_S3_SECRET_KEY="valid_secret_key",
+        STORAGE_PROVIDER="s3",
+        S3_ENDPOINT="https://test.storage.supabase.co/storage/v1/s3",
+            S3_BUCKET="test-bucket",
+            S3_ACCESS_KEY="valid_access_key",
+            S3_SECRET_KEY="valid_secret_key",
         EMBEDDING_DIMENSION=1536,
     )
     assert settings.ENVIRONMENT == "production"
-    assert settings.STORAGE_PROVIDER == "supabase"
+    assert settings.STORAGE_PROVIDER == "s3"
     assert settings.EMBEDDING_DIMENSION == 1536
