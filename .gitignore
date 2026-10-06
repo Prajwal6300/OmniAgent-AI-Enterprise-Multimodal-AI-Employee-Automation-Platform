@@ -63,8 +63,7 @@ backend/.pytest_cache/
 coverage.xml
 *.log
 
-# Databases, Storage & Cache
-storage/
+/backend/storage/
 backend/storage/
 pgdata/
 redisdata/
