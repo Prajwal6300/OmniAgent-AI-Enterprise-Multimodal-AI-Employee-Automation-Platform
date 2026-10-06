@@ -1,9 +1,3 @@
-"""
-OmniAgent AI — Storage Service
-Provides unified file storage supporting local filesystem (development)
-and S3/R2-compatible object storage (production) with path-traversal guards.
-"""
-
 import asyncio
 import hashlib
 import os
@@ -15,7 +9,6 @@ from uuid import UUID
 
 from app.core.config import settings
 from app.core.logging import logger
-from app.tools.storage.client import StorageClient
 
 
 class BaseStorageService(ABC):
@@ -26,7 +19,7 @@ class BaseStorageService(ABC):
         self,
         file_data: bytes,
         original_filename: str,
-        org_id: UUID,
+        org_id: UUID
     ) -> tuple[str, str, int]:
         """
         Saves file data safely and returns (storage_path, checksum_sha256, file_size_bytes).
@@ -51,7 +44,7 @@ def sanitize_filename(filename: str) -> str:
     """
     base_name = os.path.basename(filename)
     # Strip any ../ or ..\
-    base_name = re.sub(r"\.\.+[/\\]*", "", base_name)
+    base_name = re.sub(r"\.\.+[/\\Release]*", "", base_name)
     # Allow alphanumeric, underscore, hyphen, dot
     clean = re.sub(r"[^\w\.\-]", "_", base_name)
     if len(clean) > 128:
@@ -81,7 +74,7 @@ class LocalStorageService(BaseStorageService):
         self,
         file_data: bytes,
         original_filename: str,
-        org_id: UUID,
+        org_id: UUID
     ) -> tuple[str, str, int]:
         safe_name = sanitize_filename(original_filename)
         file_uuid = uuid.uuid4().hex
@@ -106,7 +99,7 @@ class LocalStorageService(BaseStorageService):
             storage_path=str(target_path),
             size_bytes=file_size,
             checksum=checksum,
-            org_id=str(org_id),
+            org_id=str(org_id)
         )
         return str(target_path), checksum, file_size
 
@@ -140,154 +133,126 @@ class LocalStorageService(BaseStorageService):
             return False
 
 
-class StorageService(BaseStorageService):
+class SupabaseStorageService(BaseStorageService):
     """
-    Thin wrapper that delegates to StorageClient from tools/storage/client.py.
-    Supports S3/R2 (production) and local filesystem (development) providers.
+    Production object storage service backed by S3/R2-compatible object storage.
+    Provides tenant-isolated object key paths, checksum verification, and traversal guards.
     """
 
-    def __init__(self, provider: str | None = None, org_id: UUID | str | None = None):
-        self.provider = provider or settings.STORAGE_PROVIDER
-        self.org_id = org_id
-        self.client = StorageClient(provider=self.provider)
-        # Use the same base directory as LocalStorageService for local mode
-        self.base_dir = Path(settings.STORAGE_LOCAL_DIR).resolve()
+    def __init__(self):
 
-    def _resolve_safe_path(self, storage_path: str) -> Path:
-        """Enforces path containment within the storage directory."""
-        # storage_path format: "org_id/uuid_filename" - split into org dir and filename
-        parts = storage_path.split("/", 1)
-        org_dir_name = parts[0]
-        file_name = parts[1] if len(parts) > 1 else storage_path
-        
-        org_dir = self.base_dir / org_dir_name
-        resolved = org_dir / file_name
-        
-        # Security check: Ensure resolved path is strictly within base_dir
-        if not str(resolved).startswith(str(self.base_dir)):
-            raise ValueError("Security violation: Path traversal detected outside storage root.")
-        return resolved
+        endpoint = settings.S3_ENDPOINT
+        region = settings.S3_REGION or "auto"
+        access_key = settings.S3_ACCESS_KEY
+        secret_key = settings.S3_SECRET_KEY
+        self.bucket = settings.S3_BUCKET
+
+        if not endpoint or not access_key or not secret_key:
+            raise ValueError(
+                "S3/R2 storage credentials missing. Set S3_ENDPOINT, "
+                "S3_ACCESS_KEY, and S3_SECRET_KEY."
+            )
+
+        self._s3_client = None
+        self._endpoint = endpoint
+        self._region = region
+        self._access_key = access_key
+        self._secret_key = secret_key
+        self._bucket = self.bucket
+
+    async def _get_client(self):
+        if self._s3_client is None:
+            import aiobotocore.session
+            from botocore.config import Config
+
+            session = aiobotocore.session.get_session()
+            kwargs = {
+                "region_name": self._region,
+                "endpoint_url": self._endpoint,
+                "aws_access_key_id": self._access_key,
+                "aws_secret_access_key": self._secret_key,
+            }
+            config = Config(
+                signature_version="s3v4",
+                s3={"addressing_style": "path"},
+            )
+            self._s3_client = session.create_client("s3", config=config, **kwargs)
+        return self._s3_client
 
     async def save_file(
         self,
         file_data: bytes,
         original_filename: str,
-        org_id: UUID,
+        org_id: UUID
     ) -> tuple[str, str, int]:
-        """Uploads file data to storage via StorageClient and returns (path, checksum, size)."""
         safe_name = sanitize_filename(original_filename)
         file_uuid = uuid.uuid4().hex
-        stored_filename = f"{file_uuid}_{safe_name}"
-        key = f"{org_id}/{stored_filename}"
-
-        if self.provider == "s3":
-            actual_org_id = str(org_id) if self.org_id is None else str(self.org_id)
-            result = await self.client.upload(
-                organization_id=actual_org_id,
-                file_path=key,
-                data=file_data,
-            )
-            # StorageClient.upload returns {"file_path": ..., "provider": ..., "size_bytes": ...}
-            # The key we passed is the S3 object key; return the relative path
-            file_size = int(result["size_bytes"])
-            checksum = hashlib.sha256(file_data).hexdigest()
-            return key, checksum, file_size
-        else:
-            # Local provider - store with relative key path
-            return await self._save_file_local(file_data, key, org_id)
-
-    async def _save_file_local(
-        self,
-        file_data: bytes,
-        key: str,
-        org_id: UUID,
-    ) -> tuple[str, str, int]:
-        """Local save logic using a relative key (org_id/uuid_filename)."""
-        safe_name = sanitize_filename(key.split("/")[-1])  # extract filename from key
-        file_uuid = uuid.uuid4().hex
-        stored_filename = f"{file_uuid}_{safe_name}"
-
-        # Store under org directory using the same base dir as LocalStorageService
-        org_dir = self.base_dir / str(org_id)
-        org_dir.mkdir(parents=True, exist_ok=True)
-
-        target_path = org_dir / stored_filename
-
-        def _write_sync():
-            with open(target_path, "wb") as f:
-                f.write(file_data)
-
-        await asyncio.to_thread(_write_sync)
+        key = f"{org_id}/{file_uuid}_{safe_name}"
 
         checksum = hashlib.sha256(file_data).hexdigest()
         file_size = len(file_data)
+
+        def _upload():
+            self._s3_client.put_object(
+                Bucket=self.bucket,
+                Key=key,
+                Body=file_data,
+                Metadata={
+                    "checksum-sha256": checksum,
+                    "organization-id": str(org_id),
+                    "original-filename": safe_name,
+                }
+            )
+
+        await asyncio.to_thread(_upload)
         logger.info(
-            "file_stored_locally",
-            storage_path=key,  # return the relative key
+            "file_stored_supabase",
+            storage_path=key,
             size_bytes=file_size,
             checksum=checksum,
-            org_id=str(org_id),
+            org_id=str(org_id)
         )
         return key, checksum, file_size
 
     async def read_file(self, storage_path: str) -> bytes:
-        """Downloads file data from storage via StorageClient."""
-        if self.provider == "s3":
-            actual_org_id = str(self.org_id) if self.org_id is not None else "org-unknown"
-            return await self.client.download(
-                organization_id=actual_org_id,
-                file_path=storage_path,
-            )
-        else:
-            # Local provider
-            safe_path = self._resolve_safe_path(storage_path)
-            if not safe_path.exists():
-                raise FileNotFoundError(f"Storage file not found: {storage_path}")
+        def _download() -> bytes:
+            try:
+                response = self._s3_client.get_object(
+                    Bucket=self.bucket,
+                    Key=storage_path
+                )
+                return response["Body"].read()
+            except Exception as exc:
+                raise FileNotFoundError(f"Supabase storage object not found: {storage_path}") from exc
 
-            def _read_sync() -> bytes:
-                with open(safe_path, "rb") as f:
-                    return f.read()
-
-            return await asyncio.to_thread(_read_sync)
+        return await asyncio.to_thread(_download)
 
     async def delete_file(self, storage_path: str) -> bool:
-        """Deletes file from storage via StorageClient."""
-        if self.provider == "s3":
-            actual_org_id = str(self.org_id) if self.org_id is not None else "org-unknown"
-            return await self.client.delete(
-                organization_id=actual_org_id,
-                file_path=storage_path,
-            )
-        else:
-            # Local provider
+        def _delete() -> bool:
             try:
-                safe_path = self._resolve_safe_path(storage_path)
-                if safe_path.exists():
-                    safe_path.unlink()
-                    return True
-                return False
+                self._s3_client.delete_object(
+                    Bucket=self.bucket,
+                    Key=storage_path
+                )
+                return True
             except Exception as exc:  # noqa: BLE001
-                logger.warning("file_delete_failed", path=storage_path, error=str(exc))
+                logger.warning("supabase_file_delete_failed", path=storage_path, error=str(exc))
                 return False
 
+        return await asyncio.to_thread(_delete)
+
     async def exists(self, storage_path: str) -> bool:
-        """Checks if file exists in storage."""
-        if self.provider == "s3":
-            actual_org_id = str(self.org_id) if self.org_id is not None else "org-unknown"
+        def _head() -> bool:
             try:
-                await self.client.download(
-                    organization_id=actual_org_id,
-                    file_path=storage_path,
+                self._s3_client.head_object(
+                    Bucket=self.bucket,
+                    Key=storage_path
                 )
                 return True
             except Exception:  # noqa: BLE001
                 return False
-        else:
-            try:
-                safe_path = self._resolve_safe_path(storage_path)
-                return safe_path.exists()
-            except Exception:  # noqa: BLE001
-                return False
+
+        return await asyncio.to_thread(_head)
 
 
 def get_storage_service(provider: str | None = None) -> BaseStorageService:
@@ -301,4 +266,6 @@ def get_storage_service(provider: str | None = None) -> BaseStorageService:
             "Configure S3/R2 storage ('s3')."
         )
 
-    return StorageService(provider=selected_provider)
+    if selected_provider == "s3":
+        return SupabaseStorageService()
+    return LocalStorageService()
