@@ -6,8 +6,8 @@ Create Date: 2026-10-01 00:00:00.000000
 
 """
 import sqlalchemy as sa
-from pgvector.sqlalchemy import Vector
 from alembic import op
+from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
