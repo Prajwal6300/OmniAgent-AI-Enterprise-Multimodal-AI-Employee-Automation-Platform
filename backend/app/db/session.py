@@ -26,8 +26,8 @@ def _create_engine_safe():
         kwargs["pool_pre_ping"] = True
 
         connect_args = {}
-        # When using Supabase transaction pooler (port 6543), disable prepared statement cache
-        if ":6543" in db_url or "pooler.supabase.com" in db_url:
+        # When using Neon transaction pooler (port 6543), disable prepared statement cache
+        if ":6543" in db_url or "-pooler" in db_url:
             connect_args["prepared_statement_cache_size"] = 0
             connect_args["statement_cache_size"] = 0
         if "ssl=require" in db_url or "sslmode=require" in db_url:
