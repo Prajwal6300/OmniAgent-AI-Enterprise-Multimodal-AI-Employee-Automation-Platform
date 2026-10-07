@@ -57,7 +57,9 @@ async def test_deterministic_embedding_semantic_separation():
 
 
 @pytest.mark.asyncio
-async def test_openai_embedding_not_configured_honestly():
+async def test_openai_embedding_not_configured_honestly(monkeypatch):
+    monkeypatch.setattr("app.agents.rag.embeddings.settings", None)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     provider = OpenAIEmbeddingProvider(api_key="")
     with pytest.raises(EmbeddingError) as exc_info:
         await provider.embed_query("any query")
