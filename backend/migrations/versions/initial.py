@@ -7,6 +7,7 @@ Create Date: 2026-10-01 00:00:00.000000
 """
 import sqlalchemy as sa
 from alembic import op
+from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
@@ -133,7 +134,7 @@ def upgrade():
         sa.Column('chunk_index', sa.Integer(), nullable=False),
         sa.Column('content', sa.Text(), nullable=False),
         sa.Column('token_count', sa.Integer(), nullable=False),
-        sa.Column('embedding', sa.VECTOR(dim=1536), nullable=True),
+        sa.Column('embedding', Vector(1536), nullable=True),
         sa.Column('metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], ondelete='CASCADE'),
