@@ -42,7 +42,7 @@ def sanitize_filename(filename: str) -> str:
     """
     Sanitizes filename against path traversal (../, ..\\) and dangerous shell/OS characters.
     """
-    base_name = os.path.basename(filename)
+    base_name = os.path.basename(filename.replace("\\", "/"))
     # Strip any ../ or ..\
     base_name = re.sub(r"\.\.+[/\\]*", "", base_name)
     # Allow alphanumeric, underscore, hyphen, dot
