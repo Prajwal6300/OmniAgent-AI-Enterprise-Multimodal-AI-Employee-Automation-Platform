@@ -6,7 +6,6 @@ and S3/R2-compatible object storage (production) with path-traversal guards.
 
 import asyncio
 import hashlib
-import logging
 import os
 from pathlib import Path
 from uuid import UUID
@@ -93,7 +92,6 @@ class StorageClient:
             if not all([endpoint_url, access_key, secret_key, bucket]):
                 raise ValueError("S3 endpoint, access key, secret key, and bucket are required for S3 provider.")
 
-            session = aiobotocore.session.get_session()
             kwargs = {
                 "region_name": region_name,
                 "endpoint_url": endpoint_url,
@@ -162,7 +160,6 @@ class StorageClient:
             if not all([endpoint_url, bucket]):
                 raise ValueError("S3 endpoint and bucket are required for S3 provider.")
 
-            session = aiobotocore.session.get_session()
             kwargs = {
                 "region_name": settings.S3_REGION or "auto",
                 "endpoint_url": endpoint_url,
@@ -207,7 +204,6 @@ class StorageClient:
             if not all([endpoint_url, bucket]):
                 raise ValueError("S3 endpoint and bucket are required for S3 provider.")
 
-            session = aiobotocore.session.get_session()
             kwargs = {
                 "region_name": settings.S3_REGION or "auto",
                 "endpoint_url": endpoint_url,

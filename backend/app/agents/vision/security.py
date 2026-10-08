@@ -137,9 +137,9 @@ def sanitize_filename_safely(filename: str) -> str:
     """
     Sanitizes an uploaded filename to prevent directory traversal and injection.
     """
-    base = os.path.basename(filename)
+    base = os.path.basename(filename.replace("\\", "/"))
     # Strip any directory traversal tokens
-    base = re.sub(r"\.\.+[/\\Release]*", "", base)
+    base = re.sub(r"\.\.+[/\\]*", "", base)
     # Allow alphanumeric, underscore, hyphen, and dot
     clean = re.sub(r"[^\w\.\-]", "_", base)
     if len(clean) > 128:
