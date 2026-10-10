@@ -7,13 +7,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        brand: {
-          50: '#eef2ff',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          900: '#312e81',
-        }
+        parchment: '#faf8f5',
+        softPaper: '#fdfbfa',
+        'warm-mist': '#d1d1cd',
+        ash: '#92918b',
+        graphite: '#72706b',
+        ink: '#27251e',
+        pureBlack: '#000000',
+        'brand-accent': '#3B4FC4',
       }
     },
   },
