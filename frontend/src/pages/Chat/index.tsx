@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
+import { PillChip } from '@/components/ui/PillChip';
 import { Button } from '@/components/ui/Button';
 import { chatApi } from '@/services/chatApi';
 import { UnifiedChatResponse } from '@/types';
@@ -122,19 +123,19 @@ export default function UnifiedChatPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-100">
+            <h1 className="text-2xl font-bold tracking-tight text-ink">
               OmniAgent AI — Unified Employee Chat
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-accent/5 text-brand-accent/80 border border-brand-accent/20">
               Day 8 Full Orchestration
             </span>
           </div>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-graphite mt-1">
             Autonomous multi-agent intelligence spanning documents, pgvector semantic RAG, production databases, visual inspections, cross-modal reasoning, and human-in-the-loop action governance.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+        <div className="flex items-center gap-2 text-xs text-graphite bg-softPaper/80 px-3 py-2 rounded-lg border border-warm-mist">
           <Bot className="w-4 h-4 text-cyan-400" />
           <span>7 Specialized Agents Connected</span>
         </div>
@@ -167,18 +168,12 @@ export default function UnifiedChatPage() {
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             {/* Quick Prompts */}
-            <div className="flex flex-wrap items-center gap-1.5 text-xs">
-              <span className="text-slate-500 font-medium">Quick Scenarios:</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-graphite font-medium">Quick Scenarios:</span>
               {SAMPLE_PROMPTS.map((prompt, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleSubmit(prompt)}
-                  disabled={isSubmitting}
-                  className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors text-xs border border-slate-700/60"
-                >
+                <PillChip key={idx} variant="default">
                   {prompt}
-                </button>
+                </PillChip>
               ))}
             </div>
 
@@ -197,12 +192,12 @@ export default function UnifiedChatPage() {
       {/* Chat Stream Feed */}
       <div className="space-y-4">
         {entries.length === 0 ? (
-          <Card className="p-8 text-center border-dashed border-slate-800 bg-slate-900/40">
-            <div className="w-12 h-12 mx-auto rounded-full bg-slate-800 flex items-center justify-center text-slate-400 mb-3">
-              <Sparkles className="w-6 h-6 text-cyan-400" />
+          <Card className="p-8 text-center border-dashed border-warm-mist bg-parchment/40">
+            <div className="w-12 h-12 mx-auto rounded-full bg-slate-200 flex items-center justify-center text-slate-300 mb-3">
+              <Sparkles className="w-6 h-6 text-brand-accent" />
             </div>
-            <h3 className="text-base font-semibold text-slate-200">Start an AI Employee Conversation</h3>
-            <p className="text-sm text-slate-400 max-w-lg mx-auto mt-1">
+            <h3 className="text-base font-semibold text-graphite">Start an AI Employee Conversation</h3>
+            <p className="text-sm text-graphite max-w-lg mx-auto mt-1">
               Ask about corporate SOPs, inspect production SQL tables, analyze machine images, or request cross-modal actions. The central orchestrator will route tasks, synthesize verified evidence, and pause for approval when required.
             </p>
           </Card>
@@ -216,8 +211,8 @@ export default function UnifiedChatPage() {
                     <User className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-slate-200">{entry.userMessage}</p>
-                    <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500">
+                    <p className="text-sm font-medium text-ink">{entry.userMessage}</p>
+                    <div className="flex items-center gap-2 mt-0.5 text-xs text-graphite">
                       <Clock className="w-3 h-3" />
                       <span>{entry.timestamp}</span>
                     </div>
@@ -232,7 +227,7 @@ export default function UnifiedChatPage() {
                     <Bot className="w-4 h-4 animate-spin" />
                     <span>Orchestrating multi-agent cognitive pipeline...</span>
                   </div>
-                  <div className="text-xs text-slate-500 pl-6">
+                  <div className="text-xs text-graphite pl-6">
                     Evaluating intent with Supervisor Agent and coordinating downstream specialists...
                   </div>
                 </div>
@@ -240,11 +235,11 @@ export default function UnifiedChatPage() {
 
               {/* Error State */}
               {entry.error && (
-                <div className="p-4 rounded-lg bg-red-950/40 border border-red-900/50 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                <div className="p-4 rounded-lg bg-parchment border border-warm-mist flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-brand-accent shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-sm font-semibold text-red-300">Execution Error</h4>
-                    <p className="text-xs text-red-400 mt-0.5">{entry.error}</p>
+                    <h4 className="text-sm font-semibold text-ink">Execution Error</h4>
+                    <p className="text-xs text-graphite mt-0.5">{entry.error}</p>
                   </div>
                 </div>
               )}
@@ -256,12 +251,12 @@ export default function UnifiedChatPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-semibold uppercase text-[11px] ${
+                        className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded font-semibold uppercase text-[11px] ${
                           entry.response.status === 'COMPLETED'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                            ? 'bg-brand-accent/10 text-brand-accent border border-brand-accent/30'
                             : entry.response.status === 'WAITING_FOR_APPROVAL'
-                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30 animate-pulse'
-                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+                            ? 'bg-warm-mist/10 text-graphite border border-warm-mist/30 animate-pulse'
+                            : 'bg-parchment/10 text-ink border border-warm-mist/30'
                         }`}
                       >
                         {entry.response.status === 'COMPLETED' && <CheckCircle2 className="w-3 h-3" />}
@@ -270,19 +265,19 @@ export default function UnifiedChatPage() {
                       </span>
 
                       {entry.response.grounded && (
-                        <span className="text-slate-400 font-mono text-[11px]">
+                        <span className="text-graphite font-mono text-[11px]">
                           Grounded ({(entry.response.confidence * 100).toFixed(0)}% confidence)
                         </span>
                       )}
                     </div>
 
                     {entry.response.agents_used && entry.response.agents_used.length > 0 && (
-                      <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-400">
+                      <div className="flex items-center gap-1.5 font-mono text-graphite">
                         <span>Agents:</span>
                         {entry.response.agents_used.map((ag, i) => (
                           <span
                             key={i}
-                            className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 capitalize"
+                            className="px-2 py-0.5 rounded bg-slate-800 text-graphite border border-warm-mist/50 capitalize"
                           >
                             {ag.replace('_agent', '')}
                           </span>
@@ -292,7 +287,7 @@ export default function UnifiedChatPage() {
                   </div>
 
                   {/* Answer Content */}
-                  <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 text-sm text-slate-200 leading-relaxed whitespace-pre-line">
+                  <div className="p-4 rounded-lg bg-parchment border border-warm-mist text-sm text-ink leading-relaxed whitespace-pre-line">
                     {entry.response.answer}
                   </div>
 
@@ -319,7 +314,7 @@ export default function UnifiedChatPage() {
                           </span>
                         )}
                       </div>
-                      <span className="text-emerald-400 font-bold uppercase tracking-wider text-[10px]">
+                      <span className="text-graphite font-bold uppercase tracking-wider text-[10px]">
                         Verified
                       </span>
                     </div>

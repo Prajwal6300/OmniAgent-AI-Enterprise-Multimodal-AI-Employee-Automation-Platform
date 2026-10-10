@@ -137,15 +137,15 @@ export default function ImageAnalysisPage() {
   const getSeverityBadge = (severity?: string) => {
     switch (severity?.toUpperCase()) {
       case 'CRITICAL':
-        return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-rose-950/80 text-rose-300 border border-rose-800/80">CRITICAL</span>;
+        return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-brand-accent/80 text-brand-accent border border-brand-accent/30">CRITICAL</span>;
       case 'HIGH':
-        return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-orange-950/80 text-orange-300 border border-orange-800/80">HIGH</span>;
+        return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-warm-mist/80 text-graphite border border-warm-mist/30">HIGH</span>;
       case 'MEDIUM':
-        return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-amber-950/80 text-amber-300 border border-amber-800/80">MEDIUM</span>;
+        return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-parchment/80 text-graphite border border-warm-mist/30">MEDIUM</span>;
       case 'LOW':
-        return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/80">LOW</span>;
+        return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-softPaper/80 text-graphite border border-warm-mist/30">LOW</span>;
       default:
-        return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-blue-950/80 text-blue-300 border border-blue-800/80">INFO</span>;
+        return <span className="px-2 py-0.5 text-xs font-semibold rounded bg-warm-mist/80 text-graphite border border-warm-mist/30">INFO</span>;
     }
   };
 
@@ -153,12 +153,12 @@ export default function ImageAnalysisPage() {
     switch (status?.toUpperCase()) {
       case 'SUCCESS':
       case 'AVAILABLE':
-        return <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-medium"><Check className="w-3 h-3" /> Available</span>;
+        return <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-accent"><Check className="w-3 h-3" /> Available</span>;
       case 'SKIPPED':
-        return <span className="inline-flex items-center gap-1 text-xs text-slate-400 font-medium"><Clock className="w-3 h-3" /> Skipped</span>;
+        return <span className="inline-flex items-center gap-1 text-xs font-medium text-graphite"><Clock className="w-3 h-3" /> Skipped</span>;
       case 'UNAVAILABLE':
       default:
-        return <span className="inline-flex items-center gap-1 text-xs text-amber-400 font-medium"><Info className="w-3 h-3" /> Unavailable</span>;
+        return <span className="inline-flex items-center gap-1 text-xs font-medium text-graphite"><Info className="w-3 h-3" /> Unavailable</span>;
     }
   };
 
@@ -168,15 +168,15 @@ export default function ImageAnalysisPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
-              <Eye className="w-7 h-7 text-indigo-400" />
+            <h1 className="text-2xl font-bold tracking-tight text-ink flex items-center gap-2">
+              <Eye className="w-7 h-7 text-brand-accent" />
               Vision Intelligence & Industrial Inspection
             </h1>
-            <span className="px-2.5 py-0.5 text-xs font-medium bg-indigo-950 text-indigo-300 border border-indigo-800 rounded-full">
+            <span className="px-2.5 py-0.5 text-xs font-medium bg-brand-accent/5 text-brand-accent/80 border border-brand-accent/20">
               Day 5 Agent
             </span>
           </div>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-graphite mt-1">
             Multimodal visual inspection, damage assessment, OCR inscription reading, and component localization.
           </p>
         </div>
@@ -344,11 +344,11 @@ export default function ImageAnalysisPage() {
                       key={t.id}
                       type="button"
                       onClick={() => setTaskType(t.id)}
-                      className={`px-2.5 py-1.5 text-xs rounded-lg border font-medium transition-colors text-center truncate ${
+className={`px-2.5 py-1.5 text-xs rounded-lg border font-medium transition-colors text-center truncate ${
                         taskType === t.id
-                          ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
-                          : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-800'
-                      }`}
+                          ? 'bg-brand-accent text-white border-brand-accent/30'
+                          : 'bg-warm-mist/80 text-graphite border border-warm-mist/30 hover:bg-warm-mist/60'
+                       }`}
                     >
                       {t.label}
                     </button>
@@ -378,7 +378,7 @@ export default function ImageAnalysisPage() {
                       key={idx}
                       type="button"
                       onClick={() => setQuestion(promptText)}
-                      className="text-left px-2.5 py-1 text-xs rounded-md bg-slate-800/60 hover:bg-slate-800 text-slate-300 border border-slate-700/60 transition-colors"
+                      className="text-left px-2.5 py-1 text-xs rounded-md bg-warm-mist/60 hover:bg-warm-mist text-graphite border border-warm-mist/60 transition-colors"
                     >
                       {promptText}
                     </button>
@@ -412,7 +412,7 @@ export default function ImageAnalysisPage() {
               </div>
 
               {analysisError && (
-                <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
+                <div className="p-3 rounded-lg bg-parchment/40 border border-warm-mist/80 text-graphite text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   <span>{analysisError}</span>
                 </div>
@@ -426,7 +426,7 @@ export default function ImageAnalysisPage() {
           {/* Processor Capabilities & Partial Failure Status */}
           <Card className="p-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <span className="text-xs font-semibold uppercase tracking-wider text-graphite">
                 Engine Statuses
               </span>
               <div className="flex items-center gap-4">

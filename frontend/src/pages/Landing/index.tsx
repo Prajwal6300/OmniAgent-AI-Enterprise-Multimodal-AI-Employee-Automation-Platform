@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/Button';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center px-4 text-center">
+    <div className="min-h-screen bg-parchment flex flex-col justify-center items-center px-4 text-center">
       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-6">
         Enterprise Multimodal AI Employee & Automation Platform
       </div>
-      <h1 className="text-5xl font-extrabold tracking-tight max-w-3xl text-slate-100 mb-4">
+      <h1 className="text-5xl font-extrabold tracking-tight max-w-3xl text-ink mb-4">
         Autonomous Cross-Modal AI for the Modern Enterprise
       </h1>
       <p className="text-lg text-slate-400 max-w-xl mb-8">
