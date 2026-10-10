@@ -1,5 +1,6 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useRoutes } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import AppLayout from './components/layout/AppLayout';
 
 // Pages
@@ -20,6 +21,32 @@ import NotificationsPage from './pages/Notifications';
 import SettingsPage from './pages/Settings';
 import AdminPage from './pages/Admin';
 
+function AuthGuard() {
+  const { token, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) return null;
+
+  if (!token) {
+    return (
+      <Route
+        element={
+          !window.location.pathname.includes('/login') &&
+          !window.location.pathname.includes('/register') &&
+          !window.location.pathname.includes('/')
+            ? <Navigate to="/login" replace />
+            : null
+        }
+      />
+    );
+  }
+
+  if (isAuthenticated && (window.location.pathname === '/login' || window.location.pathname === '/register')) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return null;
+}
+
 export default function App() {
   return (
     <Routes>
@@ -27,8 +54,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
-      {/* Main Authenticated Dashboard Shell */}
-      <Route element={<AppLayout />}>
+      <Route element={<AuthGuard />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
