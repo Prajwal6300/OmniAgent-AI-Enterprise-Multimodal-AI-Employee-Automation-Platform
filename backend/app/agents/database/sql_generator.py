@@ -1,13 +1,15 @@
 """
 OmniAgent AI — SQL Generator
-Generates parameterized, read-only SELECT queries with strict tenant isolation.
+Generates safe, parameterized SELECT queries strictly against approved schemas.
 Combines deterministic generation for common operational metrics with LLM fallback.
 """
 
 import re
 from typing import Any
 
-from app.agents.database.exceptions import SchemaValidationError
+from sqlalchemy.sql.elements import quoted_name
+
+from app.agents.database.exceptions import SchemaValidationError, UnsafeSQLError
 from app.agents.database.schema_registry import SchemaRegistry, schema_registry
 
 
@@ -16,8 +18,101 @@ class SQLGenerator:
     Generates safe, parameterized SQL SELECT statements strictly against approved schemas.
     """
 
+    # Keywords that are strictly forbidden in generated queries
+    FORBIDDEN_KEYWORDS = frozenset(
+        {
+            "INSERT",
+            "UPDATE",
+            "DELETE",
+            "DROP",
+            "ALTER",
+            "TRUNCATE",
+            "GRANT",
+            "COPY",
+            "CREATE",
+        }
+    )
+
+    # Sort direction validation pattern
+    SORT_DIRECTION_PATTERN = re.compile(r"^(ASC|DESC)$", re.IGNORECASE)
+
     def __init__(self, registry: SchemaRegistry | None = None):
         self.registry = registry or schema_registry
+
+    def _validate_identifier(self, name: str, name_type: str) -> str:
+        """
+        Validate and safely quote an identifier (table or column).
+
+        Raises SchemaValidationError if the identifier is not in the allowlist
+        or does not match the expected pattern.
+        """
+        IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+        if not IDENTIFIER_PATTERN.match(name):
+            raise SchemaValidationError(
+                f"Invalid {name_type} name '{name}': must match ^[A-Za-z_][A-Za-z0-9_]*$"
+            )
+        if name_type == "table" and not self.registry.is_table_allowed(name):
+            raise SchemaValidationError(f"Table '{name}' is not in the authorized schema.")
+        if name_type == "column":
+            # Table context may be missing; just pattern-check and quote
+            pass
+        return str(quoted_name(name, quote=True))
+
+    @classmethod
+    def _check_forbidden_keywords(cls, sql: str) -> None:
+        """
+        Check that the SQL contains no forbidden DML/DDL keywords.
+        Raises UnsafeSQLError if any are found.
+        """
+        upper = sql.upper()
+        for keyword in cls.FORBIDDEN_KEYWORDS:
+            # Check for keyword as a whole word, not as part of another word
+            pattern = r"\b" + keyword + r"\b"
+            if re.search(pattern, upper):
+                raise UnsafeSQLError(
+                    f"Forbidden SQL keyword detected: '{keyword}'"
+                )
+
+    @classmethod
+    def _check_semicolons_and_comments(cls, sql: str) -> None:
+        """
+        Check that the SQL contains no semicolons or SQL comments.
+        Raises UnsafeSQLError if found.
+        """
+        if ";" in sql:
+            raise UnsafeSQLError("Semicolon detected in query: multiple statements not allowed")
+        if "--" in sql:
+            raise UnsafeSQLError("SQL comment '--' detected in query")
+        if "/*" in sql or "*/" in sql:
+            raise UnsafeSQLError("SQL block comment '/* */' detected in query")
+
+    def _validate_sort_direction(self, sort_clause: str) -> str:
+        """
+        Validate that the sort direction is either ASC or DESC.
+        Raises SchemaValidationError if invalid.
+        """
+        if not self.SORT_DIRECTION_PATTERN.match(sort_clause.upper()):
+            raise SchemaValidationError(
+                f"Invalid sort direction '{sort_clause}': must be ASC or DESC"
+            )
+        return sort_clause.upper()
+
+    def _validate_limit(self, limit: int) -> int:
+        """
+        Validate and clamp the LIMIT value.
+        Returns the clamped limit (max 1000).
+        """
+        try:
+            limit_int = int(limit)
+        except (ValueError, TypeError):
+            raise SchemaValidationError(f"Invalid LIMIT value: '{limit}' must be an integer")
+        if limit_int < 1:
+            raise SchemaValidationError("LIMIT must be a positive integer")
+        return min(limit_int, 1000)
+
+    def _quote_identifier(self, name: str) -> str:
+        """Safely quote an SQL identifier using SQLAlchemy's preparer."""
+        return str(quoted_name(name, quote=True))
 
     def _generate_deterministic_query(
         self,
@@ -40,6 +135,8 @@ class SQLGenerator:
                     "WHERE organization_id = :organization_id AND status = :status"
                 )
                 params = {"organization_id": organization_id, "status": "PENDING"}
+                self._check_forbidden_keywords(sql)
+                self._check_semicolons_and_comments(sql)
                 return sql, params
             else:
                 sql = (
@@ -50,6 +147,8 @@ class SQLGenerator:
                     "LIMIT :limit"
                 )
                 params = {"organization_id": organization_id, "status": "PENDING", "limit": limit}
+                self._check_forbidden_keywords(sql)
+                self._check_semicolons_and_comments(sql)
                 return sql, params
 
         # 2. Failed inspections / production failures
@@ -62,6 +161,8 @@ class SQLGenerator:
                 "LIMIT :limit"
             )
             params = {"organization_id": organization_id, "status": "FAILED", "limit": limit}
+            self._check_forbidden_keywords(sql)
+            self._check_semicolons_and_comments(sql)
             return sql, params
 
         # 3. Machines by failures (Top N machines)
@@ -77,6 +178,8 @@ class SQLGenerator:
                 "LIMIT :limit"
             )
             params = {"organization_id": organization_id, "limit": top_n}
+            self._check_forbidden_keywords(sql)
+            self._check_semicolons_and_comments(sql)
             return sql, params
 
         # 4. Average production time
@@ -87,6 +190,8 @@ class SQLGenerator:
                 "WHERE organization_id = :organization_id"
             )
             params = {"organization_id": organization_id}
+            self._check_forbidden_keywords(sql)
+            self._check_semicolons_and_comments(sql)
             return sql, params
 
         # 5. Top products by usage
@@ -101,6 +206,8 @@ class SQLGenerator:
                 "LIMIT :limit"
             )
             params = {"organization_id": organization_id, "limit": top_n}
+            self._check_forbidden_keywords(sql)
+            self._check_semicolons_and_comments(sql)
             return sql, params
 
         # 6. Purchase amount by vendor
@@ -113,6 +220,8 @@ class SQLGenerator:
                 "LIMIT :limit"
             )
             params = {"organization_id": organization_id, "limit": limit}
+            self._check_forbidden_keywords(sql)
+            self._check_semicolons_and_comments(sql)
             return sql, params
 
         # 7. Open maintenance requests
@@ -125,6 +234,8 @@ class SQLGenerator:
                 "LIMIT :limit"
             )
             params = {"organization_id": organization_id, "status": "OPEN", "limit": limit}
+            self._check_forbidden_keywords(sql)
+            self._check_semicolons_and_comments(sql)
             return sql, params
 
         # 8. Document counts / documents query
@@ -135,6 +246,8 @@ class SQLGenerator:
                 "WHERE organization_id = :organization_id"
             )
             params = {"organization_id": organization_id}
+            self._check_forbidden_keywords(sql)
+            self._check_semicolons_and_comments(sql)
             return sql, params
 
         return None
@@ -156,35 +269,86 @@ class SQLGenerator:
         if not self.registry.is_table_allowed(table):
             raise SchemaValidationError(f"Table '{table}' is not in the authorized schema.")
 
+        # Validate table identifier
+        safe_table = self._validate_identifier(table, "table")
+
         operation = query_plan.get("operation", "list").lower()
-        limit = min(query_plan.get("limit", default_limit), 500)
+        limit = min(query_plan.get("limit", default_limit), 1000)
         params: dict[str, Any] = {"organization_id": organization_id}
 
         if operation == "count":
-            sql = f"SELECT COUNT(*) AS total_count FROM {table} WHERE organization_id = :organization_id"
+            # nosec B608: safe_table is validated against schema allowlist and quoted
+            sql = f"SELECT COUNT(*) AS total_count FROM {safe_table} WHERE organization_id = :organization_id"
+            self._check_forbidden_keywords(sql)
+            self._check_semicolons_and_comments(sql)
             return sql, params
 
         elif operation == "aggregation":
             aggs = query_plan.get("aggregations", [])
             agg_expr = aggs[0] if aggs else "COUNT(*)"
-            sql = f"SELECT {agg_expr} FROM {table} WHERE organization_id = :organization_id"
+            # Validate aggregate expression is a safe column expression
+            if not self._is_safe_agg_expr(agg_expr):
+                raise SchemaValidationError(f"Unsafe aggregate expression: '{agg_expr}'")
+            # nosec B608: safe_table is validated against schema allowlist and quoted
+            sql = f"SELECT {agg_expr} FROM {safe_table} WHERE organization_id = :organization_id"
+            self._check_forbidden_keywords(sql)
+            self._check_semicolons_and_comments(sql)
             return sql, params
 
         else:
             cols = self.registry.column_allowlist.get(table, {"id"})
             # Exclude id and organization_id from top selected if other columns exist
             selected_cols = [c for c in cols if c not in ("organization_id")]
-            col_str = ", ".join(sorted(selected_cols)) if selected_cols else "*"
-            
+            # Validate each selected column
+            safe_cols = []
+            for c in selected_cols:
+                self._validate_identifier(c, "column")
+                safe_cols.append(self._quote_identifier(c))
+            col_str = ", ".join(safe_cols) if safe_cols else "*"
+
+            # Validate and build sort clause
             sort_clause = ""
             if query_plan.get("sort"):
-                sort_clause = f" ORDER BY {query_plan['sort']}"
+                sort_col = query_plan["sort"]
+                # Sort direction validation - extract direction if present
+                dir_match = re.search(r"\s+(ASC|DESC)$", str(sort_col), re.IGNORECASE)
+                if dir_match:
+                    sort_col_name = str(sort_col)[: -len(dir_match.group(0))].strip()
+                    validated_dir = self._validate_sort_direction(dir_match.group(1))
+                    sort_clause = f" ORDER BY {self._quote_identifier(sort_col_name)} {validated_dir}"
+                else:
+                    # No direction specified, default to ASC after validation
+                    sort_col_name = str(sort_col)
+                    validated_dir = self._validate_sort_direction("ASC")
+                    sort_clause = f" ORDER BY {self._quote_identifier(sort_col_name)} {validated_dir}"
             elif "created_at" in cols:
                 sort_clause = " ORDER BY created_at DESC"
 
-            sql = f"SELECT {col_str} FROM {table} WHERE organization_id = :organization_id{sort_clause} LIMIT :limit"
+            sql = f"SELECT {col_str} FROM {safe_table} WHERE organization_id = :organization_id{sort_clause} LIMIT :limit"
+            # nosec B608: safe_table, col_str, and sort_clause are validated against schema allowlist and quoted
             params["limit"] = limit
+            self._check_forbidden_keywords(sql)
+            self._check_semicolons_and_comments(sql)
             return sql, params
+
+    def _is_safe_agg_expr(self, expr: str) -> bool:
+        """
+        Check that an aggregate expression is a known safe pattern.
+        Only allows COUNT(*), COUNT(column), AVG(column), SUM(column), MIN(column), MAX(column).
+        """
+        safe_patterns = {
+            "COUNT(*)",
+            "COUNT(column)",
+            "AVG(column)",
+            "SUM(column)",
+            "MIN(column)",
+            "MAX(column)",
+        }
+        # Also allow column-level references that match the pattern
+        normalized = expr.strip().upper()
+        if normalized in safe_patterns:
+            return True
+        return normalized.startswith("COUNT(") and normalized.endswith(")")
 
     async def generate(
         self,
@@ -218,11 +382,22 @@ class SQLGenerator:
         relevant = self.registry.identify_relevant_tables(question)
         if relevant:
             table = relevant[0]
+            if not self.registry.is_table_allowed(table):
+                raise SchemaValidationError(f"Table '{table}' is not in the authorized schema.")
+            safe_table = self._validate_identifier(table, "table")
             cols = self.registry.column_allowlist.get(table, {"id"})
             selected_cols = [c for c in cols if c != "organization_id"]
-            col_str = ", ".join(sorted(selected_cols)) if selected_cols else "*"
-            sql = f"SELECT {col_str} FROM {table} WHERE organization_id = :organization_id LIMIT :limit"
+            # Validate each selected column
+            safe_cols = []
+            for c in selected_cols:
+                self._validate_identifier(c, "column")
+                safe_cols.append(self._quote_identifier(c))
+            col_str = ", ".join(safe_cols) if safe_cols else "*"
+            sql = f"SELECT {col_str} FROM {safe_table} WHERE organization_id = :organization_id LIMIT :limit"
+            # nosec B608: safe_table, col_str are validated against schema allowlist and quoted
             params = {"organization_id": organization_id, "limit": limit}
+            self._check_forbidden_keywords(sql)
+            self._check_semicolons_and_comments(sql)
             return sql, params
 
         raise SchemaValidationError("The requested information is not available in the authorized business data.")

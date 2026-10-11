@@ -103,10 +103,16 @@ class AuthService:
         refresh_token = create_refresh_token(subject=str(user.id))
         return Token(access_token=access_token, refresh_token=refresh_token)
 
-    async def refresh(self, refresh_token: str) -> Token:
+    async def refresh(self, refresh_token: str | None = None) -> Token:
         """
         Refreshes access token with strict single-use token rotation and Redis revocation checks.
+        Refresh token is read from HttpOnly Secure SameSite cookie set on login.
         """
+        if not refresh_token:
+            # Try to get refresh token from the request context (cookie set by browser)
+            # This is injected via the route dependency
+            raise AuthenticationError("Refresh token not provided")
+
         if await is_token_revoked(refresh_token):
             raise AuthenticationError("Refresh token has been revoked")
 

@@ -2,7 +2,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import bcrypt
-from jose import jwt
+import jwt
+from fastapi import HTTPException
 
 from app.core.config import settings
 
@@ -13,9 +14,11 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     except (ValueError, TypeError):
         return False
 
+
 def get_password_hash(password: str) -> str:
     salt = bcrypt.gensalt()
     return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+
 
 def create_access_token(subject: str | Any, expires_delta: timedelta | None = None) -> str:
     if expires_delta:
@@ -25,13 +28,26 @@ def create_access_token(subject: str | Any, expires_delta: timedelta | None = No
     to_encode = {"exp": expire, "sub": str(subject), "type": "access"}
     return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
+
 def create_refresh_token(subject: str | Any) -> str:
     expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
     return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
+
 def decode_token(token: str) -> dict:
-    return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+    try:
+        return jwt.decode(
+            token,
+            settings.JWT_SECRET,
+            algorithms=[settings.JWT_ALGORITHM],
+            options={"require": ["exp", "sub"]},
+        )
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
 
 def create_invite_token(
     email: str,
@@ -48,6 +64,7 @@ def create_invite_token(
         "type": "invite",
     }
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
 
 def decode_invite_token(token: str) -> dict:
     payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])

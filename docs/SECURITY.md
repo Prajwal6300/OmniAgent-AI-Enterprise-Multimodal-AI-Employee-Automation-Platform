@@ -2,54 +2,141 @@
 
 ## 1. Multi-Tenancy & Data Isolation
 
-1. **Foreign Key Scoping**: Every core tenant table contains a mandatory non-nullable `organization_id` foreign key with `ON DELETE CASCADE`.
-2. **Database Query Level**: All SQLAlchemy query builders and database repositories mandate an explicit `organization_id` filter. Cross-tenant access attempts immediately fail with HTTP 403 Forbidden or 404 Not Found.
-3. **Storage Scoping**: Supabase Object Storage paths follow the strictly enforced format `organizations/{org_id}/documents/{document_id}/{filename}`. Path traversal attempts (`../`) are detected and rejected.
-4. **pgvector Isolation**: Dense cosine similarity vector queries enforce `WHERE organization_id = :org_id` before computing similarity ranking.
+1. **Foreign Key Scoping**: Every core tenant table contains a mandatory `organization_id` foreign key with `ON DELETE CASCADE` to organizations table.
+2. **Database Query Level**: All SQLAlchemy queries mandate an explicit `organization_id` filter. Cross-tenant access attempts immediately fail with HTTP 403 Forbidden or 404 Not Found.
+3. **Storage Scoping**: Files stored in org-isolated directories (`storage/documents/{org_id}/` or R2 key `org_id/{uuid}_filename`). Path traversal detected and rejected.
+4. **pgvector Isolation**: Vector/RAG similarity searches enforce `WHERE organization_id = :org_id` before computing similarity ranking.
+5. **PostgreSQL RLS**: Row-level security enabled on all tenant tables as defense-in-depth.
 
 ---
 
-## 2. Role-Based Access Control (RBAC)
+## 2. Authentication & Token Management
 
-The platform enforces a strict 6-tier role hierarchy with discrete permissions:
-
-| Role | Hierarchy | Permitted Operations |
-|---|---|---|
-| **Owner** | Tier 6 (Highest) | Full organization administration, member deletion, billing |
-| **Admin** | Tier 5 | User management, integration configuration, team invitations |
-| **Supervisor** | Tier 4 | Human-in-the-loop authorization, approving pending actions |
-| **Operator** | Tier 3 | Executing multi-agent workflows, uploading documents, running chat |
-| **Auditor** | Tier 2 | Verifying cryptographic audit chains, trace inspection |
-| **Viewer** | Tier 1 (Lowest) | Read-only inspection of reports and analytics |
+1. **JWT Auth**: Access tokens signed with HS256 algorithm. Secret key must be >= 32 characters, unique, random. No default values in production.
+2. **Token Storage**: Access tokens stored in memory only (not localStorage). Refresh tokens stored in HttpOnly, Secure, SameSite=strict cookies set by backend.
+3. **Token Rotation**: Single-use refresh token rotation enforced. Old refresh tokens revoked in Redis on each refresh.
+4. **Refresh Cookie**: Refresh tokens set as HttpOnly Secure SameSite=strict cookies on login. Inaccessible to JavaScript, immune to XSS theft.
+5. **Logout**: Revokes refresh token in Redis and clears the cookie.
 
 ---
 
-## 3. Cryptographic Tamper-Proof Audit Chaining
+## 3. Cryptographic Secrets
 
-All operational side-effects (database mutations, ticket creation, email dispatch) generate an immutable audit log entry in `audit_logs` and `action_audit_logs`:
-- **Chaining Mechanism**: Each record stores `prev_hash` (the SHA-256 hash of the previous log entry).
-- **Current Hash Calculation**:
-  $$\text{entry\_hash} = \text{SHA256}(\text{prev\_hash} \,||\, \text{timestamp} \,||\, \text{canonical\_payload})$$
-- **Verification Script**: Independent offline script `scripts/verify_audit_chain.py` validates the entire hash chain from the genesis block forward. Any row tampering, deletion, or reordering breaks the chain immediately.
-
----
-
-## 4. Human-in-the-Loop Approval & Idempotency
-
-Actions are classified into 4 risk tiers: `LOW`, `MEDIUM`, `HIGH`, and `CRITICAL`.
-- **High/Critical Gating**: High and Critical actions cannot execute without supervisor approval.
-- **Dual Approver Requirement**: `CRITICAL` risk operations (e.g. data wipes, global configurations) require approval by two distinct authorized supervisors.
-- **HMAC Payload Binding**: The approval token binds cryptographically to the canonical JSON representation of the action parameters using HMAC-SHA256. If parameters are altered between approval and execution, validation fails.
-- **Distributed Locking**: Approvals utilize Redis distributed locks to prevent race conditions or duplicate execution runs.
+1. **SECRET_KEY/JWT_SECRET**: Must be unique, random, >= 32 characters. No default or hardcoded values in production code.
+2. **ENCRYPTION_KEY**: Must be unique, random, >= 32 characters. Fernet key derived from SECRET_KEY via SHA-256.
+3. **Production Validation**: FastAPI startup validator fails if defaults detected in production environment.
+4. **Secret Rotation**: Secrets rotated via environment variable override; no code changes required.
 
 ---
 
-## 5. Input Validation & Prompt Injection Defense
+## 4. Input Validation & Data Sanitization
 
-1. **SQL Agent Defense**: All generated SQL queries pass through strict AST analysis via `sqlglot`:
-   - Only `SELECT` statements are permitted.
-   - All DDL (`DROP`, `ALTER`, `CREATE`) and DML (`INSERT`, `UPDATE`, `DELETE`) are blocked.
-   - Access to PostgreSQL system tables (`pg_*`, `information_schema`) is prohibited.
-   - A mandatory tenant filter matching the current request's `organization_id` is enforced.
-2. **Direct Prompt Injection Guard**: Inputs are scanned using multi-pattern heuristic evaluators for system prompt exfiltration, instruction overrides, or delimiters.
-3. **File Upload Verification**: Files are validated against magic bytes (libmagic / byte signatures) and size caps (25 MB) before parsing.
+1. **File Uploads**: Maximum 25MB size. Extension check (.pdf, .docx, .txt) AND content-type/magic-byte verification. Filename sanitization against path traversal (`../`, shell metacharacters).
+2. **Identifier Validation**: All table/column names in SQL query builders validated against schema allowlist and regex pattern `^[A-Za-z_][A-Za-z0-9_]*$`.
+3. **SQL Injection Prevention**: Generated SQL queries checked for forbidden keywords (INSERT, UPDATE, DELETE, DROP, etc.). No semicolons or SQL comments allowed. Only SELECT permitted with organization_id scoping.
+4. **Filename Sanitization**: `os.path.basename()` to strip directory components, `re.sub()` to remove dangerous characters, UUID prefix for collision resistance.
+
+---
+
+## 5. Role-Based Access Control (RBAC)
+
+1. **6-Tier Role Hierarchy**: Owner > Admin > Supervisor > Operator > Auditor > Viewer.
+2. **Backend Enforcement**: All role/permission checks enforced by backend dependency `require_role()`, NOT client-side only.
+3. **Admin Routes**: `/admin`, action approvals, user role updates, workflow deletion — all guarded by backend role checks.
+4. **Principle of Least Privilege**: Users restricted to their organization's resources only.
+
+---
+
+## 6. Rate Limiting
+
+1. **Login/Register/Refresh**: Rate-limited per-IP with configurable thresholds.
+2. **Chat**: Rate-limited to prevent OpenAI cost abuse.
+3. **Upload**: Rate-limited to prevent resource exhaustion.
+4. **Implementation**: slowapi/limiter middleware on all sensitive endpoints.
+
+---
+
+## 7. Exposed Secrets Prevention
+
+1. **.env and .env.example**: No real secret values committed. Placeholder values only (`CHANGE_ME_IN_PRODUCTION`).
+2. **.gitignore**: Covers `.env`, `.env.local`, `.env.*.local`, `.venv/`, `venv/`, environment directories.
+3. **Docker Compose**: Default credentials removed; `POSTGRES_USER/PASSWORD/DB` must be set via env vars.
+4. **Render/Vercel**: Secrets stored in platform dashboards, not in repository.
+5. **VITE_* Env Vars**: Frontend `VITE_API_BASE_URL` is the only permitted public env var; all others must be proxied backend.
+
+---
+
+## 8. Password Hashing
+
+1. **Algorithm**: bcrypt with per-user salt generated by `bcrypt.gensalt()`.
+2. **Cost**: Automatic bcrypt cost parameter selection.
+3. **Comparison**: Constant-time `checkpw()` comparison.
+4. **Policy**: Minimum 8 characters enforced at registration.
+
+---
+
+## 9. MFA (Multi-Factor Authentication)
+
+1. **TOTP Implementation**: Time-based One-Time Password support for admin roles.
+2. **Backup Codes**: 8 single-use backup codes generated per admin user.
+3. **Setup Flow**: QR code-based TOTP provisioning via authenticator app.
+4. **Recovery**: Admins must complete TOTP + password auth on each login.
+
+---
+
+## 10. Security Headers
+
+1. **HSTS**: `Strict-Transport-Security` header with `max-age=31536000; includeSubDomains`.
+2. **X-Content-Type-Options**: `nosniff` to prevent MIME-type sniffing.
+3. **X-Frame-Options**: `DENY` (or `SAMEORIGIN`) to prevent clickjacking.
+4. **CSP**: Content-Security-Policy with `default-src 'self'`, `script-src 'self' https://js.stripe.com`, `img-src 'self' data:`, `style-src 'self' 'unsafe-inline'`.
+5. **Implementation**: Middleware adds headers to all FastAPI responses.
+
+---
+
+## 11. Audit Logging
+
+1. **Immutable Chain**: All mutations generate audit log entries with SHA-256 hash chaining (`prev_hash || timestamp || canonical_payload`).
+2. **Tamper Detection**: Independent offline script `scripts/verify_audit_chain.py` validates entire hash chain.
+3. **Coverage**: User logins, role changes, document uploads, workflow executions, approval decisions.
+4. **PII Scrubbing**: No passwords, tokens, or full PII stored in audit log details.
+
+---
+
+## 12. Secrets Rotation
+
+1. **Rotation Process**: Update secrets in Render/Vercel/Neon dashboards; redeploy service.
+2. **No Downtime**: New secrets take effect on next request; old secrets valid until replaced.
+3. **Audit**: Rotation events logged to audit_logs table.
+4. **Key Management**: Fernet key derived deterministically from SECRET_KEY; re-derive on each rotation.
+
+---
+
+## 13. How to Report Issues
+
+1. **Private Disclosure**: Email security@omniagent.ai for private vulnerability reports.
+2. **Public Disclosure**: Use GitHub Security Advisories with `security` label.
+3. **Response Expectation**: Initial response within 48 hours, triage within 7 days.
+4. **Coordinated Disclosure**: Work with team to establish reasonable disclosure timeline.
+
+---
+
+## 14. Threat Model Summary
+
+**Protected Assets:**
+- Organization data isolation (documents, workflows, integrations, notifications)
+- Authentication tokens (JWT access/refresh secrets)
+- Cryptographic keys (SECRET_KEY, JWT_SECRET, ENCRYPTION_KEY)
+- Financial resources (OpenAI API costs via rate limiting on chat)
+- User credentials (password hashing with bcrypt)
+- Audit chain integrity (hash-linked immutable logs)
+
+**Threat Vectors Mitigated:**
+- SQL injection via parameterized queries + schema allowlist
+- XSS via memory-only token storage + CSP + output sanitization
+- CSRF via cookie-less auth + SameSite=strict + header-based tokens
+- IDOR via org_id-scoped queries + backend-only permission enforcement
+- File upload attacks via size limits + extension + magic-byte + traversal sanitization
+- SSRF via URL allowlist/denylist for integrations
+- Secret exposure via .gitignore + no defaults in code + platform secret storage
+- Prompt injection via schema-validated SQL generation + forbidden keyword detection

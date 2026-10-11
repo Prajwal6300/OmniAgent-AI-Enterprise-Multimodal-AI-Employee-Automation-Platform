@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { apiClient } from '@/services/api/client';
 
 export interface AuthUser {
   id: string;
@@ -24,16 +23,15 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  token: localStorage.getItem('access_token'),
-  refreshToken: localStorage.getItem('refresh_token'),
-  isAuthenticated: !!localStorage.getItem('access_token'),
+  token: null,
+  refreshToken: null,
+  isAuthenticated: false,
   isLoading: false,
 
   setAuth: (user: AuthUser, token: string, refreshToken?: string) => {
-    localStorage.setItem('access_token', token);
-    if (refreshToken) {
-      localStorage.setItem('refresh_token', refreshToken);
-    }
+    // Access token stored in memory only (not in localStorage) to prevent XSS theft
+    // Store in a global so the API client interceptor can read it
+    ;(window as any).__OMNIAUTH_ACCESS_TOKEN__ = token;
     set({
       user,
       token,
@@ -44,8 +42,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   clearAuth: () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    // Clear the in-memory access token
+    ;(window as any).__OMNIAUTH_ACCESS_TOKEN__ = null;
     set({
       user: null,
       token: null,
@@ -72,11 +70,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: () => {
     get().clearAuth();
+    apiClient.post('/auth/logout').then(() => {
+      // Refresh cookie cleared by backend on logout
+    }).finally(() => {
+      set({ isLoading: false });
+    });
     window.location.href = '/login';
   },
 
   fetchCurrentUser: async () => {
-    if (!localStorage.getItem('access_token')) return;
+    const token = (window as any).__OMNIAUTH_ACCESS_TOKEN__;
+    if (!token) return;
     set({ isLoading: true });
     try {
       const response = await apiClient.get('/users/me');
