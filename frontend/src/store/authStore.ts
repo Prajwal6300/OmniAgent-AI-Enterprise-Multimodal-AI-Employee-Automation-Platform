@@ -31,7 +31,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setAuth: (user: AuthUser, token: string, refreshToken?: string) => {
     // Access token stored in memory only (not in localStorage) to prevent XSS theft
     // Store in a global so the API client interceptor can read it
-    ;(window as any).__OMNIAUTH_ACCESS_TOKEN__ = token;
+    (window as any).__OMNIAUTH_ACCESS_TOKEN__ = token;
     set({
       user,
       token,
@@ -43,7 +43,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   clearAuth: () => {
     // Clear the in-memory access token
-    ;(window as any).__OMNIAUTH_ACCESS_TOKEN__ = null;
+    (window as any).__OMNIAUTH_ACCESS_TOKEN__ = null;
     set({
       user: null,
       token: null,
