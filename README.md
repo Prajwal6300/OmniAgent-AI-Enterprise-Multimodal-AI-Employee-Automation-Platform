@@ -128,7 +128,7 @@ OmniAgent AI supports comprehensive media normalization pipelines under `multimo
 - **Structured Data**: CSV/Excel automated schema inference, missing value imputation, and DuckDB analytical query execution.
 
 ---
-
+                      
 ## RAG
 
 The RAG subsystem (`backend/app/services/rag/`) delivers enterprise semantic retrieval:
