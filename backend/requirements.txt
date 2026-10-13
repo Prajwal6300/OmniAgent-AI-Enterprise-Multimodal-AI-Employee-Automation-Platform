@@ -30,3 +30,4 @@ reportlab>=4.0.0
 pytesseract>=0.3.10
 numpy>=1.24.0
 slowapi>=0.1.0
+cryptography>=42.0.0

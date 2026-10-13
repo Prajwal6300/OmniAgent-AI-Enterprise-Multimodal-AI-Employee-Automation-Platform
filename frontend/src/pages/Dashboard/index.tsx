@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Bot, CheckCircle2, ShieldCheck, Activity, AlertTriangle, Loader2 } from 'lucide-react';
 
