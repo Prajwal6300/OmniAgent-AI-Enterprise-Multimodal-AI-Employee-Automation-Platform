@@ -11,7 +11,7 @@ OmniAgent AI is designed for enterprise deployment with strict security, tenant 
 ## Reporting Vulnerabilities
 If you discover a potential security vulnerability, please do NOT create a public GitHub issue.
 Instead, email security concerns directly to: **security@omniagent.ai**
-
+                                                            
 Please include:
 1. Description of the vulnerability and impact.
 2. Steps to reproduce or proof-of-concept.
