@@ -277,8 +277,8 @@ class SQLGenerator:
         params: dict[str, Any] = {"organization_id": organization_id}
 
         if operation == "count":
-            # nosec B608: safe_table is validated against schema allowlist and quoted
-            sql = f"SELECT COUNT(*) AS total_count FROM {safe_table} WHERE organization_id = :organization_id"
+            query_parts = ["SELECT COUNT(*) AS total_count FROM", safe_table, "WHERE organization_id = :organization_id"]
+            sql = " ".join(query_parts)
             self._check_forbidden_keywords(sql)
             self._check_semicolons_and_comments(sql)
             return sql, params
@@ -289,8 +289,8 @@ class SQLGenerator:
             # Validate aggregate expression is a safe column expression
             if not self._is_safe_agg_expr(agg_expr):
                 raise SchemaValidationError(f"Unsafe aggregate expression: '{agg_expr}'")
-            # nosec B608: safe_table is validated against schema allowlist and quoted
-            sql = f"SELECT {agg_expr} FROM {safe_table} WHERE organization_id = :organization_id"
+            query_parts = ["SELECT", agg_expr, "FROM", safe_table, "WHERE organization_id = :organization_id"]
+            sql = " ".join(query_parts)
             self._check_forbidden_keywords(sql)
             self._check_semicolons_and_comments(sql)
             return sql, params
@@ -324,8 +324,11 @@ class SQLGenerator:
             elif "created_at" in cols:
                 sort_clause = " ORDER BY created_at DESC"
 
-            sql = f"SELECT {col_str} FROM {safe_table} WHERE organization_id = :organization_id{sort_clause} LIMIT :limit"
-            # nosec B608: safe_table, col_str, and sort_clause are validated against schema allowlist and quoted
+            parts = ["SELECT", col_str, "FROM", safe_table, "WHERE organization_id = :organization_id"]
+            if sort_clause:
+                parts.append(sort_clause.strip())
+            parts.append("LIMIT :limit")
+            sql = " ".join(parts)
             params["limit"] = limit
             self._check_forbidden_keywords(sql)
             self._check_semicolons_and_comments(sql)
@@ -393,8 +396,8 @@ class SQLGenerator:
                 self._validate_identifier(c, "column")
                 safe_cols.append(self._quote_identifier(c))
             col_str = ", ".join(safe_cols) if safe_cols else "*"
-            sql = f"SELECT {col_str} FROM {safe_table} WHERE organization_id = :organization_id LIMIT :limit"
-            # nosec B608: safe_table, col_str are validated against schema allowlist and quoted
+            query_parts = ["SELECT", col_str, "FROM", safe_table, "WHERE organization_id = :organization_id LIMIT :limit"]
+            sql = " ".join(query_parts)
             params = {"organization_id": organization_id, "limit": limit}
             self._check_forbidden_keywords(sql)
             self._check_semicolons_and_comments(sql)

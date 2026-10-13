@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { apiClient } from '@/services/api/client';
 
 export interface AuthUser {
   id: string;

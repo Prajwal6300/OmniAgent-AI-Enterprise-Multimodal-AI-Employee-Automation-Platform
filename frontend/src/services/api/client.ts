@@ -30,7 +30,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
     if (error) {
       promise.reject(error);
     } else {
-      promise.resolve(token);
+      promise.resolve(token ?? undefined);
     }
   });
   failedQueue = [];

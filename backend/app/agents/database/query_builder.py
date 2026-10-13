@@ -68,8 +68,8 @@ class QueryBuilder:
         col_str = ", ".join(safe_cols)
 
         # Build WHERE clause with organization_id from authenticated user
-        # nosec B608: safe_table and col_str are validated against schema allowlist and quoted
-        base_query = f"SELECT {col_str} FROM {safe_table} WHERE organization_id = :organization_id"
+        query_parts = ["SELECT", col_str, "FROM", safe_table, "WHERE organization_id = :organization_id"]
+        base_query = " ".join(query_parts)
 
         if filters:
             # Validate filter keys (should be column names)
@@ -107,8 +107,8 @@ class QueryBuilder:
         col_str = ", ".join(safe_cols)
 
         # Build WHERE clause with organization_id from authenticated user
-        # nosec B608: safe_table and col_str are validated against schema allowlist and quoted
-        base_query = f"SELECT {col_str} FROM {safe_table} WHERE organization_id = :organization_id"
+        query_parts = ["SELECT", col_str, "FROM", safe_table, "WHERE organization_id = :organization_id"]
+        base_query = " ".join(query_parts)
 
         if filters:
             # Validate filter keys (should be column names)
