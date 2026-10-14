@@ -1,13 +1,13 @@
 # OmniAgent AI — Production Deployment Guide
 
-This guide details step-by-step deployment of OmniAgent AI to the fixed production stack: **Supabase** (PostgreSQL + pgvector + Storage), **Render** (Backend Docker Web Service + Celery Worker), and **Vercel** (Frontend SPA).
+This guide details step-by-step deployment of OmniAgent AI to the fixed production stack: **Neon** (PostgreSQL + pgvector + Cloudflare R2 Storage), **Render** (Backend Docker Web Service + Celery Worker), and **Vercel** (Frontend SPA).
 
 ---
 
 ## 1. Ordered Deployment Procedure
 
 ```
-  Step 1: Supabase Setup (Database, pgvector, Storage Bucket)
+  Step 1: Neon Setup (PostgreSQL, pgvector, R2 Bucket)
              │
              ▼
   Step 2: Render Backend & Workers (Web API, Worker, Redis)
@@ -26,14 +26,14 @@ This guide details step-by-step deployment of OmniAgent AI to the fixed producti
 
 ## 2. Step-by-Step Instructions
 
-### Step 1: Provision Supabase
-1. Create a new Supabase project in your preferred AWS region.
+### Step 1: Provision Neon
+1. Create a new Neon project in your preferred AWS region.
 2. In the **SQL Editor**, enable `pgvector`:
    ```sql
    CREATE EXTENSION IF NOT EXISTS vector;
    ```
-3. Navigate to **Storage** and create a private bucket named `documents`.
-4. Generate **S3 Access Keys** under **Project Settings -> Storage -> S3 Access Keys**. Save the `Access Key ID` and `Secret Access Key`.
+3. Navigate to **Storage** and create a private bucket using Cloudflare R2 compatible settings.
+4. Generate **R2 Access Keys** under **Neon Dashboard -> Storage**. Save the `Access Key ID` and `Secret Access Key`.
 
 ### Step 2: Provision Render Infrastructure
 1. In the **Render Dashboard**, create a **Redis Key Value** service. Save the internal connection URL.
@@ -80,15 +80,15 @@ alembic upgrade head
 | `SECRET_KEY` | Min 32-char cryptographic random secret | `openssl rand -hex 32` | Render Web & Worker |
 | `JWT_SECRET` | Min 32-char secret (must differ from SECRET_KEY) | `openssl rand -hex 32` | Render Web & Worker |
 | `ENCRYPTION_KEY` | 32-character encryption key for credentials | `openssl rand -hex 32` | Render Web & Worker |
-| `DATABASE_URL` | Supabase Postgres Transaction Pooler (port 6543) | Supabase Dashboard -> Database | Render Web & Worker |
-| `ALEMBIC_DATABASE_URL` | Supabase Direct Session connection (port 5432) | Supabase Dashboard -> Database | Migration runner |
+| `DATABASE_URL` | Neon Postgres connection URL | Neon Dashboard -> Database | Render Web & Worker |
+| `ALEMBIC_DATABASE_URL` | Neon Direct Session connection | Neon Dashboard -> Database | Migration runner |
 | `REDIS_URL` | Redis instance URL | Render Redis Internal URL | Render Web & Worker |
 | `OPENAI_API_KEY` | OpenAI API Key (`sk-...`) | OpenAI Developer Platform | Render Web & Worker |
-| `STORAGE_PROVIDER` | Must be `supabase` in production | Set manually | Render Web & Worker |
-| `SUPABASE_S3_ENDPOINT`| S3 API endpoint URL | Supabase Dashboard -> Storage | Render Web & Worker |
-| `SUPABASE_S3_REGION` | S3 region (e.g. `us-east-1`) | Supabase Dashboard -> Storage | Render Web & Worker |
-| `SUPABASE_S3_ACCESS_KEY` | Storage S3 Access Key ID | Supabase Dashboard -> Storage | Render Web & Worker |
-| `SUPABASE_S3_SECRET_KEY` | Storage S3 Secret Access Key | Supabase Dashboard -> Storage | Render Web & Worker |
-| `SUPABASE_BUCKET` | Default `documents` | Supabase Dashboard -> Storage | Render Web & Worker |
+| `STORAGE_PROVIDER` | Must be `s3` (Cloudflare R2) | Set manually | Render Web & Worker |
+| `S3_ENDPOINT` | R2 endpoint URL (e.g. `https://<account>.r2.cloudflare.com`) | Neon Dashboard -> Storage | Render Web & Worker |
+| `S3_REGION` | R2 region (e.g. `auto`) | Neon Dashboard -> Storage | Render Web & Worker |
+| `S3_ACCESS_KEY` | R2 Access Key ID | Neon Dashboard -> Storage | Render Web & Worker |
+| `S3_SECRET_KEY` | R2 Secret Access Key | Neon Dashboard -> Storage | Render Web & Worker |
+| `S3_BUCKET` | Default `documents` | Neon Dashboard -> Storage | Render Web & Worker |
 | `ALLOWED_ORIGINS` | JSON list of allowed origins | Vercel Deployment URL | Render Web |
 | `VITE_API_BASE_URL` | Base API URL | Render Web Service URL | Vercel Frontend |

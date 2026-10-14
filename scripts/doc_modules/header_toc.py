@@ -77,7 +77,7 @@ def get_header_and_toc() -> str:
 - [52. Environment Configuration](#52-environment-configuration)
 - [53. GitHub](#53-github)
 - [54. CI/CD](#54-cicd)
-- [55. Supabase](#55-supabase)
+- [55. Neon + pgvector](#55-supabase)
 - [56. Render Deployment](#56-render-deployment)
 - [57. Vercel Deployment](#57-vercel-deployment)
 - [58. Production Architecture](#58-production-architecture)
