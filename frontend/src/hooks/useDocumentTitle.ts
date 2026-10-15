@@ -1,26 +1,46 @@
-const useDocumentTitle = (title: string,? canonicalPath?: string) => {
+import { useEffect } from 'react';
+
+interface UseDocumentTitleProps {
+  canonicalPath?: string;
+  title?: string;
+  description?: string;
+  robots?: string;
+}
+
+export const useDocumentTitle = ({
+  canonicalPath,
+  title,
+  description,
+  robots,
+}: UseDocumentTitleProps) => {
   useEffect(() => {
-    // Set document title
-    const formattedTitle = title.trim() || 'OmniAgent AI';
-    document.title = `${formattedTitle} | OmniAgent AI`;
+    const currentPath = canonicalPath || window.location.pathname;
+    document.title = title || 'OmniAgent AI';
+  }, [canonicalPath, title]);
 
-    // Set canonical URL if canonicalPath is provided
-    if (canonicalPath) {
-      // Remove existing canonical links
-      const existingCanonicals = document.querySelectorAll('link[rel="canonical"]');
-      existingCanonicals.forEach(el => el.remove());
-
-      // Build canonical URL: site URL + path (exclude root for cleaner URLs)
-      const siteUrl = 'https://omniagent.ai';
-      const canonicalPath = canonicalPath === '/' ? '' : canonicalPath;
-      const canonicalUrl = canonicalPath ? `${siteUrl}${canonicalPath}` : siteUrl;
-
-      const canonicalLink = document.createElement('link');
-      canonicalLink.rel = 'canonical';
-      canonicalLink.href = canonicalUrl;
-      document.head.appendChild(canonicalLink);
+  useEffect(() => {
+    const existingDesc = document.querySelector('meta[name="description"]');
+    if (description && existingDesc) {
+      (existingDesc as any).setAttribute('content', description);
+    } else if (description) {
+      const newMeta = document.createElement('meta');
+      newMeta.name = 'description';
+      newMeta.content = description;
+      document.head.appendChild(newMeta);
     }
-  }, [title, canonicalPath]);
-};
+  }, [description, canonicalPath]);
 
-export default useDocumentTitle;
+  useEffect(() => {
+    if (robots) {
+      const existingRobots = document.querySelector('meta[name="robots"]');
+      if (existingRobots) {
+        (existingRobots as any).setAttribute('content', robots);
+      } else {
+        const newRobots = document.createElement('meta');
+        newRobots.name = 'robots';
+        newRobots.content = robots;
+        document.head.appendChild(newRobots);
+      }
+    }
+  }, [robots, canonicalPath]);
+};
