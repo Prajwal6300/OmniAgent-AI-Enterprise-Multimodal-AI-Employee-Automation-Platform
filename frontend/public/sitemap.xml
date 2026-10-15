@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://omniagent.ai/</loc>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://omniagent.ai/login</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://omniagent.ai/register</loc>
+    <priority>0.8</priority>
+  </url>
+</urlset>
