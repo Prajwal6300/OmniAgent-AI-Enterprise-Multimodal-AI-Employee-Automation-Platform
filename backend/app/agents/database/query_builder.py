@@ -6,8 +6,6 @@ Provides structured, safe query construction. Preserves backward compatibility.
 import re
 from typing import Any
 
-from sqlalchemy.sql.elements import quoted_name
-
 from app.agents.database.exceptions import SchemaValidationError
 from app.agents.database.schema_registry import schema_registry
 
@@ -23,12 +21,13 @@ class QueryBuilder:
     def __init__(self, registry: type[schema_registry] | None = None):
         self.registry = registry or schema_registry
 
-    def _validate_identifier(self, name: str, name_type: str) -> str:
+    def _validate_identifier(self, name: str, name_type: str, table: str | None = None) -> str:
         """
-        Validate and safely quote an identifier (table or column).
+        Validate and safely pass an identifier (table or column).
 
         Raises SchemaValidationError if the identifier is not in the allowlist
-        or does not match the expected pattern.
+        or does not match the expected pattern. Returns the validated name;
+        safety comes from the allowlist plus the identifier regex, not from quoting.
         """
         if not self.IDENTIFIER_PATTERN.match(name):
             raise SchemaValidationError(
@@ -36,12 +35,11 @@ class QueryBuilder:
             )
         if name_type == "table" and not self.registry.is_table_allowed(name):
             raise SchemaValidationError(f"Table '{name}' is not in the authorized schema.")
-        if name_type == "column" and not self.registry.is_column_allowed(
-            "", name
-        ):
-            # Table context may be missing; just pattern-check
-            pass
-        return str(quoted_name(name, quote=True))
+        if name_type == "column" and table and not self.registry.is_column_allowed(table, name):
+                raise SchemaValidationError(
+                    f"Column '{name}' is not allowed for table '{table}'."
+                )
+        return name
 
     def build_select(
         self,
@@ -60,12 +58,16 @@ class QueryBuilder:
         # Validate table
         safe_table = self._validate_identifier(table, "table")
 
-        # Validate and quote columns
-        safe_cols = []
-        for col in columns:
-            safe_col = self._validate_identifier(col, "column")
-            safe_cols.append(safe_col)
-        col_str = ", ".join(safe_cols)
+        # Handle "*" as the whole column list
+        if columns == ["*"] or columns is None:
+            col_str = "*"
+        else:
+            # Validate and pass columns
+            safe_cols = []
+            for col in columns:
+                self._validate_identifier(col, "column", table)
+                safe_cols.append(col)
+            col_str = ", ".join(safe_cols)
 
         # Build WHERE clause with organization_id from authenticated user
         query_parts = ["SELECT", col_str, "FROM", safe_table, "WHERE organization_id = :organization_id"]
@@ -75,7 +77,7 @@ class QueryBuilder:
             # Validate filter keys (should be column names)
             conditions = []
             for k in filters:
-                _ = self._validate_identifier(k, "column")  # validates but uses table=""
+                _ = self._validate_identifier(k, "column", table)  # validates with table context
                 conditions.append(f"{k} = :{k}")
             base_query += f" AND {' AND '.join(conditions)}"
 
@@ -86,8 +88,8 @@ class QueryBuilder:
         table: str,
         columns: list[str] | None = None,
         filters: dict[str, Any] | None = None,
-        limit: int = 1000,
-    ) -> str:
+        limit: int = 500,
+    ) -> tuple[str, int]:
         """
         Builds a SELECT query with validated table, columns, filters, and clamped limit.
 
@@ -99,12 +101,16 @@ class QueryBuilder:
         # Validate table
         safe_table = self._validate_identifier(table, "table")
 
-        # Validate and quote columns
-        safe_cols = []
-        for col in columns:
-            safe_col = self._validate_identifier(col, "column")
-            safe_cols.append(safe_col)
-        col_str = ", ".join(safe_cols)
+        # Handle "*" as the whole column list
+        if columns == ["*"] or columns is None:
+            col_str = "*"
+        else:
+            # Validate and pass columns
+            safe_cols = []
+            for col in columns:
+                self._validate_identifier(col, "column", table)
+                safe_cols.append(col)
+            col_str = ", ".join(safe_cols)
 
         # Build WHERE clause with organization_id from authenticated user
         query_parts = ["SELECT", col_str, "FROM", safe_table, "WHERE organization_id = :organization_id"]
@@ -114,12 +120,17 @@ class QueryBuilder:
             # Validate filter keys (should be column names)
             conditions = []
             for k in filters:
-                _ = self._validate_identifier(k, "column")
+                _ = self._validate_identifier(k, "column", table)  # validates with table context
                 conditions.append(f"{k} = :{k}")
             base_query += f" AND {' AND '.join(conditions)}"
 
-        # Clamp limit to maximum
-        clamped_limit = min(limit, 1000)
+        # Clamp limit to maximum (max 500)
+        try:
+            limit_int = int(limit)
+        except (ValueError, TypeError):
+            limit_int = 500
+        limit_int = max(limit_int, 1)
+        clamped_limit = min(limit_int, 500)
         base_query += " LIMIT :limit"
 
         return base_query, clamped_limit

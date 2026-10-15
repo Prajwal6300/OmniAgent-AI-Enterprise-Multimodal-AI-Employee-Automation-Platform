@@ -7,8 +7,6 @@ Combines deterministic generation for common operational metrics with LLM fallba
 import re
 from typing import Any
 
-from sqlalchemy.sql.elements import quoted_name
-
 from app.agents.database.exceptions import SchemaValidationError, UnsafeSQLError
 from app.agents.database.schema_registry import SchemaRegistry, schema_registry
 
@@ -39,12 +37,13 @@ class SQLGenerator:
     def __init__(self, registry: SchemaRegistry | None = None):
         self.registry = registry or schema_registry
 
-    def _validate_identifier(self, name: str, name_type: str) -> str:
+    def _validate_identifier(self, name: str, name_type: str, table: str | None = None) -> str:
         """
-        Validate and safely quote an identifier (table or column).
+        Validate and safely pass an identifier (table or column).
 
         Raises SchemaValidationError if the identifier is not in the allowlist
-        or does not match the expected pattern.
+        or does not match the expected pattern. Returns the validated name;
+        safety comes from the allowlist plus the identifier regex, not from quoting.
         """
         IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
         if not IDENTIFIER_PATTERN.match(name):
@@ -53,10 +52,11 @@ class SQLGenerator:
             )
         if name_type == "table" and not self.registry.is_table_allowed(name):
             raise SchemaValidationError(f"Table '{name}' is not in the authorized schema.")
-        if name_type == "column":
-            # Table context may be missing; just pattern-check and quote
-            pass
-        return str(quoted_name(name, quote=True))
+        if name_type == "column" and table and not self.registry.is_column_allowed(table, name):
+                raise SchemaValidationError(
+                    f"Column '{name}' is not allowed for table '{table}'."
+                )
+        return name
 
     @classmethod
     def _check_forbidden_keywords(cls, sql: str) -> None:
@@ -100,7 +100,7 @@ class SQLGenerator:
     def _validate_limit(self, limit: int) -> int:
         """
         Validate and clamp the LIMIT value.
-        Returns the clamped limit (max 1000).
+        Returns the clamped limit (max 500).
         """
         try:
             limit_int = int(limit)
@@ -108,11 +108,7 @@ class SQLGenerator:
             raise SchemaValidationError(f"Invalid LIMIT value: '{limit}' must be an integer")
         if limit_int < 1:
             raise SchemaValidationError("LIMIT must be a positive integer")
-        return min(limit_int, 1000)
-
-    def _quote_identifier(self, name: str) -> str:
-        """Safely quote an SQL identifier using SQLAlchemy's preparer."""
-        return str(quoted_name(name, quote=True))
+        return min(limit_int, 500)
 
     def _generate_deterministic_query(
         self,
@@ -289,6 +285,13 @@ class SQLGenerator:
             # Validate aggregate expression is a safe column expression
             if not self._is_safe_agg_expr(agg_expr):
                 raise SchemaValidationError(f"Unsafe aggregate expression: '{agg_expr}'")
+            # When a column is given (not *), require it to be in the allowlist for this table
+            if agg_expr.upper().startswith(("AVG", "SUM", "MIN", "MAX")):
+                col_name = agg_expr.strip().split("(", 1)[1].rstrip(")")
+                if not self.registry.is_column_allowed(safe_table, col_name):
+                    raise SchemaValidationError(
+                        f"Column '{col_name}' is not allowed for table '{safe_table}'."
+                    )
             query_parts = ["SELECT", agg_expr, "FROM", safe_table, "WHERE organization_id = :organization_id"]
             sql = " ".join(query_parts)
             self._check_forbidden_keywords(sql)
@@ -302,25 +305,35 @@ class SQLGenerator:
             # Validate each selected column
             safe_cols = []
             for c in selected_cols:
-                self._validate_identifier(c, "column")
-                safe_cols.append(self._quote_identifier(c))
+                self._validate_identifier(c, "column", table)
+                safe_cols.append(c)
             col_str = ", ".join(safe_cols) if safe_cols else "*"
 
             # Validate and build sort clause
             sort_clause = ""
             if query_plan.get("sort"):
-                sort_col = query_plan["sort"]
-                # Sort direction validation - extract direction if present
-                dir_match = re.search(r"\s+(ASC|DESC)$", str(sort_col), re.IGNORECASE)
+                sort_col = str(query_plan["sort"])
+                # Validate sort column against allowlist for this table
+                dir_match = re.search(r"\s+(ASC|DESC)$", sort_col, re.IGNORECASE)
                 if dir_match:
-                    sort_col_name = str(sort_col)[: -len(dir_match.group(0))].strip()
+                    sort_col_name = dir_match.group(0).strip().rstrip(" ASC").rstrip(" DESC").strip()
+                    # Get the actual column name (everything before the direction)
+                    sort_col_name = sort_col[:dir_match.start()].strip()
+                    if sort_col_name not in self.registry.column_allowlist.get(table, set()):
+                        raise SchemaValidationError(
+                            f"Sort column '{sort_col_name}' is not allowed for table '{table}'."
+                        )
                     validated_dir = self._validate_sort_direction(dir_match.group(1))
-                    sort_clause = f" ORDER BY {self._quote_identifier(sort_col_name)} {validated_dir}"
+                    sort_clause = f" ORDER BY {sort_col_name} {validated_dir}"
                 else:
                     # No direction specified, default to ASC after validation
-                    sort_col_name = str(sort_col)
+                    sort_col_name = str(sort_col).strip()
+                    if sort_col_name not in self.registry.column_allowlist.get(table, set()):
+                        raise SchemaValidationError(
+                            f"Sort column '{sort_col_name}' is not allowed for table '{table}'."
+                        )
                     validated_dir = self._validate_sort_direction("ASC")
-                    sort_clause = f" ORDER BY {self._quote_identifier(sort_col_name)} {validated_dir}"
+                    sort_clause = f" ORDER BY {sort_col_name} {validated_dir}"
             elif "created_at" in cols:
                 sort_clause = " ORDER BY created_at DESC"
 
@@ -334,24 +347,24 @@ class SQLGenerator:
             self._check_semicolons_and_comments(sql)
             return sql, params
 
+    AGG_EXPR_PATTERN = re.compile(
+        r"^(COUNT|AVG|SUM|MIN|MAX)\((\*|[A-Za-z_][A-Za-z0-9_]*)\)$", re.IGNORECASE
+    )
+
     def _is_safe_agg_expr(self, expr: str) -> bool:
         """
         Check that an aggregate expression is a known safe pattern.
         Only allows COUNT(*), COUNT(column), AVG(column), SUM(column), MIN(column), MAX(column).
+        Column references must be in the column allowlist for the table.
+        The * form is only allowed for COUNT.
         """
-        safe_patterns = {
-            "COUNT(*)",
-            "COUNT(column)",
-            "AVG(column)",
-            "SUM(column)",
-            "MIN(column)",
-            "MAX(column)",
-        }
-        # Also allow column-level references that match the pattern
-        normalized = expr.strip().upper()
-        if normalized in safe_patterns:
-            return True
-        return normalized.startswith("COUNT(") and normalized.endswith(")")
+        normalized = expr.strip()
+        match = self.AGG_EXPR_PATTERN.match(normalized)
+        if not match:
+            return False
+        func = match.group(1).upper()
+        col_or_asterisk = match.group(2)
+        return func == "COUNT" and col_or_asterisk == "*" or func in ("AVG", "SUM", "MIN", "MAX") and col_or_asterisk != "*"
 
     async def generate(
         self,
@@ -393,8 +406,8 @@ class SQLGenerator:
             # Validate each selected column
             safe_cols = []
             for c in selected_cols:
-                self._validate_identifier(c, "column")
-                safe_cols.append(self._quote_identifier(c))
+                self._validate_identifier(c, "column", table)
+                safe_cols.append(c)
             col_str = ", ".join(safe_cols) if safe_cols else "*"
             query_parts = ["SELECT", col_str, "FROM", safe_table, "WHERE organization_id = :organization_id LIMIT :limit"]
             sql = " ".join(query_parts)
