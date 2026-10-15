@@ -205,7 +205,6 @@ export default function AdminConsolePage() {
                   <label className="text-xs font-medium text-slate-500 block mb-1">Email Address</label>
                   <input
                     type="email"
-                    placeholder="colleague@company.com"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
                     className="w-full bg-slate-100 border border-warm-mist rounded px-3 py-2 text-sm text-slate-500 focus:outline-none focus:border-brand-accent"

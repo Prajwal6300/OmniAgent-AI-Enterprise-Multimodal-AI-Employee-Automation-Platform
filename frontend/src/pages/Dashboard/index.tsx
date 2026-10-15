@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { Bot, CheckCircle2, ShieldCheck, Activity, AlertTriangle, Loader2 } from 'lucide-react';
 
 export default function DashboardPage() {

@@ -46,15 +46,15 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md">
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-ink">Register Enterprise</h2>
-          <p className="text-sm text-slate-500 mt-1">Create organization tenant & administrator</p>
+          <p className="text-base text-slate-500 mt-1">Create organization tenant & administrator</p>
         </div>
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Organization Name</label>
+            <label className="block text-base font-medium text-slate-500 mb-1">Organization Name</label>
             <input
               type="text"
               defaultValue="Acme Global Inc"
-              className="w-full px-3 py-2 bg-slate-100 border border-warm-mist rounded-lg text-sm text-ink focus:outline-none focus:border-brand-accent"
+              className="w-full px-3 py-2 bg-slate-100 border border-warm-mist rounded-lg text-base text-ink focus:outline-none focus:border-brand-accent"
               required
             />
             {errors.organization_name && (
@@ -62,11 +62,11 @@ export default function RegisterPage() {
             )}
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Admin Email</label>
+            <label className="block text-base font-medium text-slate-500 mb-1">Admin Email</label>
             <input
               type="email"
               defaultValue="admin@acme.com"
-              className="w-full px-3 py-2 bg-slate-100 border border-warm-mist rounded-lg text-sm text-ink focus:outline-none focus:border-brand-accent"
+              className="w-full px-3 py-2 bg-slate-100 border border-warm-mist rounded-lg text-base text-ink focus:outline-none focus:border-brand-accent"
               required
             />
             {errors.admin_email && (
@@ -74,10 +74,10 @@ export default function RegisterPage() {
             )}
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Password</label>
+            <label className="block text-base font-medium text-slate-500 mb-1">Password</label>
             <input
               type="password"
-              className="w-full px-3 py-2 bg-slate-100 border border-warm-mist rounded-lg text-sm text-ink focus:outline-none focus:border-brand-accent"
+              className="w-full px-3 py-2 bg-slate-100 border border-warm-mist rounded-lg text-base text-ink focus:outline-none focus:border-brand-accent"
               required
             />
             {errors.password && (
@@ -88,7 +88,7 @@ export default function RegisterPage() {
             {isLoading ? 'Creating...' : 'Create Tenant'}
           </Button>
         </form>
-        <div className="mt-4 text-center text-xs text-slate-500">
+        <div className="mt-4 text-center text-base text-slate-500">
           Already registered? <Link to="/login" className="text-brand-accent hover:underline">Sign in</Link>
         </div>
       </Card>

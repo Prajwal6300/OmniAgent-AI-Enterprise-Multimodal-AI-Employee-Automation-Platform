@@ -50,8 +50,7 @@ export default function LoginPage() {
             <label className="block text-xs font-medium text-slate-500 mb-1">Corporate Email</label>
             <input
               type="email"
-              defaultValue="admin@omnicorp.com"
-              className="w-full px-3 py-2 bg-slate-100 border border-warm-mist rounded-lg text-sm text-ink focus:outline-none focus:border-brand-accent"
+              className="w-full px-3 py-2 bg-slate-100 border border-warm-mist rounded-lg text-base text-ink focus:outline-none focus:border-brand-accent"
               required
             />
             {errors.email && (
@@ -59,11 +58,10 @@ export default function LoginPage() {
             )}
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Password</label>
+            <label className="block text-base font-medium text-slate-500 mb-1">Corporate Email</label>
             <input
               type="password"
-              defaultValue="password"
-              className="w-full px-3 py-2 bg-slate-100 border border-warm-mist rounded-lg text-sm text-ink focus:outline-none focus:border-brand-accent"
+              className="w-full px-3 py-2 bg-slate-100 border border-warm-mist rounded-lg text-base text-ink focus:outline-none focus:border-brand-accent"
               required
             />
             {errors.password && (
