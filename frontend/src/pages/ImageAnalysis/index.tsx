@@ -250,6 +250,9 @@ export default function ImageAnalysisPage() {
                   <img
                     src={previewUrl}
                     alt="Artifact under inspection"
+                    loading="lazy"
+                    width="100%"
+                    height="auto"
                     className="max-h-[460px] w-auto object-contain select-none"
                   />
 

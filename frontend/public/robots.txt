@@ -1,0 +1,21 @@
+User-agent: *
+Disallow: /login
+Disallow: /register
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /chat
+Disallow: /documents
+Disallow: /image-analysis
+Disallow: /workflows
+Disallow: /approvals
+Disallow: /agent-runs
+Disallow: /analytics
+Disallow: /integrations
+Disallow: /notifications
+Disallow: /settings
+Allow: /
+Allow: /login
+Allow: /register
+
+Host: omniagent.ai
+Sitemap: https://omniagent.ai/sitemap.xml
