@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/utils/cn';
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { ToastProvider, Toaster } from '@/hooks/useToast';
+import CookieConsentBanner from '@/components/ui/CookieConsentBanner';
+import { BrandMark } from '@/components/ui/BrandMark';
 import { 
   Bot, LayoutDashboard, MessageSquare, FileText, CheckCircle2, 
   Workflow, Network, Sliders, Shield, Bell, BarChart3, Radio, Menu
 } from 'lucide-react';
-import { ToastProvider, Toaster } from '@/hooks/useToast';
-import { BrandMark } from '@/components/ui/BrandMark';
 import { SidebarNavItem } from '@/components/ui/SidebarNavItem';
 import { TopNavLink } from '@/components/ui/TopNavLink';
 import { GhostButton } from '@/components/ui/GhostButton';
@@ -165,7 +166,27 @@ export default function AppLayout() {
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
+        <CookieConsentBanner />
         <footer className="mt-6 border-t border-warm-mist p-4 text-center text-sm text-slate-400">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+              <span className="font-medium text-ink">{import.meta.env.VITE_COMPANY_NAME || "[to be provided]"}</span>
+              <p className="text-xs text-slate-500 mt-1">{import.meta.env.VITE_COMPANY_ADDRESS || "[to be provided]"}</p>
+            </div>
+            <div className="text-right md:text-left">
+              <p className="text-xs text-slate-500">Support: {import.meta.env.VITE_CONTACT_EMAIL || "[to be provided]"}</p>
+              <p className="text-xs text-slate-500">Grievance: {import.meta.env.VITE_GRIEVANCE_EMAIL || "[to be provided]"}</p>
+              <div className="mt-2 md:mt-0">
+                <a href="/privacy" className="text-indigo-600 hover:text-indigo-500 text-xs">Privacy Policy</a>
+                <span className="mx-2">|</span>
+                <a href="/terms" className="text-indigo-600 hover:text-indigo-500 text-xs">Terms of Service</a>
+                <span className="mx-2">|</span>
+                <a href="/refunds" className="text-indigo-600 hover:text-indigo-500 text-xs">Refund Policy</a>
+                <span className="mx-2">|</span>
+                <a href="/cookies" className="text-indigo-600 hover:text-indigo-500 text-xs">Cookie Policy</a>
+              </div>
+            </div>
+          </div>
           © {new Date().getFullYear()} OmniAgent AI. All rights reserved.{import.meta.env.VITE_CONTACT_PHONE && (
             <span className="mx-2">
               <a href={`tel:${import.meta.env.VITE_CONTACT_PHONE.replace(/[- space]/g, '')}`} className="text-slate-300 hover:text-slate-100">
@@ -173,15 +194,7 @@ export default function AppLayout() {
               </a>
             </span>
           )}
-          {import.meta.env.VITE_CONTACT_EMAIL && (
-            <span className="mx-2">
-              <a href={`mailto:${import.meta.env.VITE_CONTACT_EMAIL}`} className="text-slate-300 hover:text-slate-100">
-                {import.meta.env.VITE_CONTACT_EMAIL}
-              </a>
-            </span>
-          )}
         </footer>
-        <Toaster />
       </div>
     </div>
   );
