@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { FilledActionButton } from '@/components/ui/FilledActionButton';
 import { workflowApi } from '@/services/workflowApi';
 import { Workflow, WorkflowRun } from '@/types';
 import { WorkflowList } from '@/components/workflows/WorkflowList';
@@ -119,14 +120,14 @@ export default function WorkflowsPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-100">
+            <h1 className="text-2xl font-bold tracking-tight text-ink">
               Enterprise Workflows & Automation
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-accent/5 text-brand-accent/80 border border-brand-accent/20">
               Production DAG Runtime
             </span>
           </div>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-slate-500 mt-1">
             Build and monitor deterministic business automation pipelines combining specialized agents, conditional branches, human approvals, and verified operations.
           </p>
         </div>
@@ -144,7 +145,7 @@ export default function WorkflowsPage() {
           </Button>
           <Button
             size="sm"
-            className="bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-1.5"
+            className="bg-brand-accent text-white flex items-center gap-1.5"
             onClick={() => {
               setSelectedWorkflow(null);
               setIsEditing(true);
@@ -161,12 +162,12 @@ export default function WorkflowsPage() {
         <div
           className={`p-3.5 rounded-lg flex items-center justify-between text-xs font-medium ${
             notification.type === 'success'
-              ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-800/50'
-              : 'bg-rose-950/40 text-rose-300 border border-rose-800/50'
+              ? 'bg-softPaper text-emerald-700 border-warm-mist'
+              : 'bg-parchment text-rose-600 border-warm-mist'
           }`}
         >
           <span>{notification.message}</span>
-          <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-slate-200">
+          <button onClick={() => setNotification(null)} className="text-slate-500 hover:text-slate-400">
             ✕
           </button>
         </div>
@@ -193,30 +194,30 @@ export default function WorkflowsPage() {
           {selectedWorkflow && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
               {/* Left Column: Workflow Detail */}
-              <Card className="lg:col-span-1 p-5 bg-slate-900 border-slate-800 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <Card className="lg:col-span-1 p-5 bg-slate-100 border-warm-mist space-y-4">
+                <div className="flex items-center justify-between border-b border-warm-mist pb-3">
                   <div className="flex items-center gap-2">
-                    <GitBranch className="w-4 h-4 text-cyan-400" />
-                    <h3 className="font-semibold text-slate-100 text-sm">{selectedWorkflow.name}</h3>
+                    <GitBranch className="w-4 h-4 text-brand-accent" />
+                    <h3 className="font-semibold text-ink text-sm">{selectedWorkflow.name}</h3>
                   </div>
-                  <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-300">
+                  <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-mono">
                     {selectedWorkflow.trigger_type}
                   </span>
                 </div>
 
-                <div className="space-y-2 text-slate-300">
+                <div className="space-y-2 text-slate-500">
                   <p className="text-slate-400 leading-relaxed">
                     {selectedWorkflow.description || 'No description provided.'}
                   </p>
 
                   <div className="space-y-1.5 pt-2">
-                    <span className="font-semibold text-slate-400 uppercase text-[10px] tracking-wider block">
+                    <span className="font-semibold text-slate-500 uppercase text-[10px] tracking-wider block">
                       Pipeline Architecture:
                     </span>
-                    <ol className="space-y-1.5 font-mono text-[11px] list-decimal list-inside pl-1 text-slate-300">
+                    <ol className="space-y-1.5 font-mono text-[11px] list-decimal list-inside pl-1 text-slate-400">
                       {selectedWorkflow.graph_definition?.steps?.map((step, idx) => (
-                        <li key={idx} className="p-1.5 rounded bg-slate-950 border border-slate-800/80">
-                          <span className="font-bold text-cyan-400 uppercase">{step.type}: </span>
+                        <li key={idx} className="p-1.5 rounded bg-slate-100 border border-warm-mist/50">
+                          <span className="font-bold text-brand-accent uppercase">{step.type}: </span>
                           <span>{step.agent || step.action || `${step.field} ${step.operator}`}</span>
                         </li>
                       ))}
@@ -224,7 +225,7 @@ export default function WorkflowsPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+                <div className="pt-3 border-t border-warm-mist flex items-center justify-between">
                   <Button
                     size="sm"
                     variant="outline"
@@ -234,7 +235,7 @@ export default function WorkflowsPage() {
                   </Button>
                   <Button
                     size="sm"
-                    className="bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-1.5"
+                    className="bg-brand-accent text-white flex items-center gap-1.5"
                     disabled={runningWorkflowId === selectedWorkflow.id}
                     onClick={() => handleRunWorkflow(selectedWorkflow)}
                   >
@@ -246,7 +247,7 @@ export default function WorkflowsPage() {
 
               {/* Right Column: Execution Run History */}
               <div className="lg:col-span-2">
-                <Card className="p-5 bg-slate-900 border-slate-800">
+                <Card className="p-5 bg-slate-100 border-warm-mist">
                   <WorkflowRunHistory runs={runs} onCancelRun={handleCancelRun} />
                 </Card>
               </div>

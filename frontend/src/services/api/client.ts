@@ -10,7 +10,9 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = localStorage.getItem('access_token');
+  // Access token is passed via Authorization header from in-memory auth store
+  // (not read from localStorage to prevent XSS theft)
+  const token = (window as any).__OMNIAUTH_ACCESS_TOKEN__;
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -19,7 +21,7 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 let isRefreshing = false;
 let failedQueue: Array<{
-  resolve: (value?: unknown) => void;
+  resolve: (value?: string) => void;
   reject: (reason?: unknown) => void;
 }> = [];
 
@@ -28,7 +30,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
     if (error) {
       promise.reject(error);
     } else {
-      promise.resolve(token);
+      promise.resolve(token ?? undefined);
     }
   });
   failedQueue = [];
@@ -71,39 +73,24 @@ apiClient.interceptors.response.use(
     originalRequest._retry = true;
     isRefreshing = true;
 
-    const refreshToken = localStorage.getItem('refresh_token');
-    if (!refreshToken) {
-      isRefreshing = false;
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      return Promise.reject(error);
-    }
-
     try {
-      const response = await axios.post(`${baseURL}/auth/refresh`, {
-        refresh_token: refreshToken,
-      });
-
-      const { access_token, refresh_token: newRefreshToken } = response.data;
-      localStorage.setItem('access_token', access_token);
-      if (newRefreshToken) {
-        localStorage.setItem('refresh_token', newRefreshToken);
-      }
-
-      apiClient.defaults.headers.common.Authorization = `Bearer ${access_token}`;
-      if (originalRequest.headers) {
-        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+      // Request refresh: browser automatically sends HttpOnly refresh cookie
+      const response = await apiClient.post(`${baseURL}/auth/refresh`, {}, { withCredentials: true });
+      const access_token = response.data.access_token;
+      if (access_token) {
+        // Store new access token in memory only
+        (window as any).__OMNIAUTH_ACCESS_TOKEN__ = access_token;
       }
 
       processQueue(null, access_token);
+      if (originalRequest.headers) {
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+      }
       return apiClient(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError, null);
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
-      }
+      // Clear in-memory auth state
+      (window as any).__OMNIAUTH_ACCESS_TOKEN__ = null;
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

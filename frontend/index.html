@@ -1,13 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OmniAgent AI — Enterprise Multimodal AI Employee</title>
+<meta charset="UTF-8" />
+<link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="OmniAgent AI - Enterprise Multimodal AI Employee & Automation Platform" />
+<meta property="og:title" content="OmniAgent AI - Enterprise Multimodal AI Employee" />
+<meta property="og:description" content="OmniAgent AI - Enterprise Multimodal AI Employee & Automation Platform" />
+<meta property="og:url" content="https://omniagent.ai/" />
+<meta property="og:image" content="https://omniagent.ai/logo.png" />
+<meta property="og:imageWidth" content="1200" />
+<meta property="og:imageHeight" content="630" />
+<meta name="twitter:card" content="summary" />
+<title>OmniAgent AI — Enterprise Multimodal AI Employee</title>
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=${import.meta.env.VITE_GA_MEASUREMENT_ID}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '${import.meta.env.VITE_GA_MEASUREMENT_ID}');
+    </script>
   </body>
 </html>

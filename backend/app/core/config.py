@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """
     OmniAgent AI — Production Configuration & Settings
-    Strictly aligned to the fixed stack: OpenAI, Render, Supabase (pgvector & Storage), Redis.
+    Strictly aligned to the fixed stack: OpenAI, Render, Neon (pgvector & Storage), Cloudflare R2.
     """
 
     # 1. Environment & Core
@@ -62,13 +62,6 @@ class Settings(BaseSettings):
     S3_SECRET_KEY: str = ""
     S3_BUCKET: str = "documents"
 
-    # Deprecated Supabase aliases — accepted with a logged warning
-    SUPABASE_S3_ENDPOINT: str = Field(default="", alias="SUPABASE_S3_ENDPOINT")
-    SUPABASE_S3_REGION: str = Field(default="", alias="SUPABASE_S3_REGION")
-    SUPABASE_S3_ACCESS_KEY: str = Field(default="", alias="SUPABASE_S3_ACCESS_KEY")
-    SUPABASE_S3_SECRET_KEY: str = Field(default="", alias="SUPABASE_S3_SECRET_KEY")
-    SUPABASE_BUCKET: str = Field(default="documents", alias="SUPABASE_BUCKET")
-
     # 7. Optional Integrations (SMTP & Sentry)
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
@@ -112,37 +105,6 @@ class Settings(BaseSettings):
     )
 
     @model_validator(mode="after")
-    def map_deprecated_supabase_aliases(self) -> "Settings":
-        """Map deprecated SUPABASE_S3_* env vars to new S3_* names with a warning."""
-        import warnings
-
-        supabase_to_s3 = {
-            self.SUPABASE_S3_ENDPOINT: "S3_ENDPOINT",
-            self.SUPABASE_S3_REGION: "S3_REGION",
-            self.SUPABASE_S3_ACCESS_KEY: "S3_ACCESS_KEY",
-            self.SUPABASE_S3_SECRET_KEY: "S3_SECRET_KEY",
-        }
-
-        any_mapped = False
-        for supabase_val, new_attr in supabase_to_s3.items():
-            if supabase_val and not getattr(self, new_attr, None):
-                setattr(self, new_attr, supabase_val)
-                any_mapped = True
-
-        if any_mapped and self.STORAGE_PROVIDER != "supabase":
-            warnings.warn(
-                "Deprecated SUPABASE_S3_* environment variables detected. "
-                "Migrate to S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY, S3_SECRET_KEY.",
-                UserWarning,
-            )
-
-        # Also handle the bucket: if SUPABASE_BUCKET was set and S3_BUCKET wasn't
-        if self.SUPABASE_BUCKET and not self.S3_BUCKET:
-            self.S3_BUCKET = self.SUPABASE_BUCKET
-
-        return self
-
-    @model_validator(mode="after")
     def validate_production_configuration(self) -> "Settings":
         """Fail fast at startup if configuration is invalid for production."""
         if self.ENVIRONMENT == "production":
@@ -166,7 +128,7 @@ class Settings(BaseSettings):
 
             # 2. Database & Redis requirements
             if not self.DATABASE_URL or "localhost" in self.DATABASE_URL:
-                raise ValueError("In production, DATABASE_URL must point to a remote managed PostgreSQL database (e.g. Supabase).")
+                raise ValueError("In production, DATABASE_URL must point to a remote managed PostgreSQL database (e.g. Neon).")
             if not self.REDIS_URL:
                 raise ValueError("In production, REDIS_URL must be configured.")
 
@@ -185,12 +147,6 @@ class Settings(BaseSettings):
                         "Set STORAGE_PROVIDER=s3 for production deployments.",
                         UserWarning,
                     )
-            if self.STORAGE_PROVIDER == "supabase":
-                import warnings
-                warnings.warn(
-                    "STORAGE_PROVIDER=supabase is deprecated. Use STORAGE_PROVIDER=s3 instead.",
-                    UserWarning,
-                )
             if self.STORAGE_PROVIDER not in ("s3", "local"):
                 raise ValueError("STORAGE_PROVIDER must be one of: s3, local.")
 
@@ -204,15 +160,6 @@ class Settings(BaseSettings):
                     raise ValueError("When STORAGE_PROVIDER is 's3', S3_SECRET_KEY must be set.")
                 if not self.S3_BUCKET:
                     raise ValueError("When STORAGE_PROVIDER is 's3', S3_BUCKET must be set.")
-
-            # Log deprecation warnings for old Supabase aliases
-            if self.SUPABASE_S3_ENDPOINT and self.STORAGE_PROVIDER != "supabase":
-                import warnings
-                warnings.warn(
-                    "SUPABASE_S3_ENDPOINT is set but STORAGE_PROVIDER is not 'supabase'. "
-                    "SUPABASE_S3_* names are deprecated; use S3_ENDPOINT, S3_REGION, etc. instead.",
-                    UserWarning,
-                )
 
             # 5. Embedding dimension check
             if self.EMBEDDING_DIMENSION != 1536:

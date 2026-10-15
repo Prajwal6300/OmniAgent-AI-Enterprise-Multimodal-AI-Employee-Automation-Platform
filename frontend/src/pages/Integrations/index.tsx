@@ -97,14 +97,14 @@ export default function IntegrationsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-100">Integrations</h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Integrations</h1>
+          <p className="text-sm text-graphite mt-1">
             Fernet-encrypted connectors for enterprise webhooks, email relays, and APIs.
           </p>
         </div>
         <Button
           onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 hover:bg-blue-500 text-white text-xs flex items-center gap-1.5"
+          className="bg-brand-accent hover:bg-brand-accent/90 text-white text-xs flex items-center gap-1.5"
         >
           <Plus className="w-4 h-4" />
           Add Integration
@@ -115,10 +115,10 @@ export default function IntegrationsPage() {
       {isLoading ? (
         <Card className="p-12 text-center text-slate-400">Loading integrations...</Card>
       ) : integrations.length === 0 ? (
-        <Card className="p-12 text-center text-slate-400 border-slate-800 bg-slate-900/40">
-          <Layers className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-          <p className="text-base font-medium text-slate-300">No integrations configured</p>
-          <p className="text-xs text-slate-500 mt-1">
+        <Card className="p-12 text-center text-graphite border-warm-mist bg-parchment/40">
+          <Layers className="w-10 h-10 text-graphite mx-auto mb-3" />
+          <p className="text-base font-medium text-graphite">No integrations configured</p>
+          <p className="text-xs text-graphite mt-1">
             Add a webhook, Slack, or SMTP email connector to enable external actions.
           </p>
         </Card>

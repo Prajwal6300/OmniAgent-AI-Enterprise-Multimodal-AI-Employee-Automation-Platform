@@ -457,18 +457,19 @@ Continuous Integration is automated via GitHub Actions across 3 distinct workflo
 
 ---
 
-# 55. Supabase
+# 55. Neon + pgvector
 
 **Status:** ✅ Verified Configuration
 
-In production, OmniAgent AI supports managed PostgreSQL on Supabase:
-- **pgvector Extension**: Pre-installed on Supabase PostgreSQL.
+In production, OmniAgent AI supports managed PostgreSQL on Neon:
+- **pgvector Extension**: Pre-installed on Neon PostgreSQL.
 - **Connection URI Format**:
-  `postgresql+asyncpg://postgres:[PASSWORD]@[HOST].pooler.supabase.com:5432/postgres?ssl=require`
-- **Session Pooling**: Connection pooling mode (Transaction or Session) configured via Supabase Supavisor on port 5432 or 6543.
-- **Migrations**: Alembic migrations run directly against the Supabase database using `alembic upgrade head`.
+  postgresql+asyncpg://postgres:[PASSWORD]@[HOST].neon.tech:5432/omniagent_db?ssl=require
+- **Session Pooling**: Connection pooling mode (Transaction or Session) configured via Neon Supavisor on port 5432 or 6543.
+- **Migrations**: Alembic migrations run directly against the Neon database using lembic upgrade head.
 
 ---
+
 
 # 56. Render Deployment
 

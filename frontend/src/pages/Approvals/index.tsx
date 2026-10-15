@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { FilledActionButton } from '@/components/ui/FilledActionButton';
 import { 
   approvalService, 
   ActionApprovalItem, 
@@ -93,7 +94,7 @@ export default function HumanApprovalsPage() {
   const getActionIcon = (actionType: string) => {
     switch (actionType.toLowerCase()) {
       case 'send_email':
-        return <Mail className="w-5 h-5 text-indigo-400" />;
+        return <Mail className="w-5 h-5 text-brand-accent" />;
       case 'create_ticket':
         return <Ticket className="w-5 h-5 text-amber-400" />;
       case 'send_notification':
@@ -101,61 +102,95 @@ export default function HumanApprovalsPage() {
       case 'create_report':
         return <FileText className="w-5 h-5 text-emerald-400" />;
       default:
-        return <AlertTriangle className="w-5 h-5 text-slate-400" />;
+        return <AlertTriangle className="w-5 h-5 text-slate-500" />;
     }
   };
 
   const getRiskBadge = (risk: string) => {
-    switch (risk?.toUpperCase()) {
-      case 'LOW':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">LOW RISK</span>;
-      case 'MEDIUM':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">MEDIUM RISK</span>;
-      case 'HIGH':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">HIGH RISK</span>;
-      case 'CRITICAL':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">CRITICAL</span>;
-      default:
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400">{risk}</span>;
-    }
+    const riskUpper = risk?.toUpperCase() || '';
+    return (
+      <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold">
+        {riskUpper === 'LOW' && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-softPaper text-slate-500">
+            LOW RISK
+          </span>
+        )}
+        {riskUpper === 'MEDIUM' && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-softPaper text-slate-500">
+            MEDIUM RISK
+          </span>
+        )}
+        {riskUpper === 'HIGH' && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-softPaper text-slate-500">
+            HIGH RISK
+          </span>
+        )}
+        {riskUpper === 'CRITICAL' && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-parchment text-brand-accent">
+            CRITICAL
+          </span>
+        )}
+        {riskUpper === '' && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-softPaper text-slate-500">{risk}</span>
+        )}
+      </span>
+    );
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status?.toUpperCase()) {
-      case 'COMPLETED':
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"><Check className="w-3 h-3" /> Completed</span>;
-      case 'PENDING_APPROVAL':
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20"><Clock className="w-3 h-3" /> Pending Approval</span>;
-      case 'APPROVED':
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20"><CheckCircle2 className="w-3 h-3" /> Approved</span>;
-      case 'REJECTED':
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20"><XCircle className="w-3 h-3" /> Rejected</span>;
-      case 'FAILED':
-      case 'VERIFICATION_FAILED':
-        return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20"><AlertTriangle className="w-3 h-3" /> {status}</span>;
-      default:
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-400">{status}</span>;
-    }
+    const statusUpper = status?.toUpperCase() || '';
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+        {statusUpper === 'COMPLETED' && (
+          <span className="bg-softPaper text-emerald-700 border-emerald-300">
+            <Check className="w-3 h-3" /> Completed
+          </span>
+        )}
+        {statusUpper === 'PENDING_APPROVAL' && (
+          <span className="bg-softPaper text-slate-600 border-warm-mist">
+            <Clock className="w-3 h-3" /> Pending Approval
+          </span>
+        )}
+        {statusUpper === 'APPROVED' && (
+          <span className="bg-brand-accent/20 text-brand-accent border-brand-accent/30">
+            <CheckCircle2 className="w-3 h-3" /> Approved
+          </span>
+        )}
+        {statusUpper === 'REJECTED' && (
+          <span className="bg-parchment text-rose-600 border rose-300">
+            <XCircle className="w-3 h-3" /> Rejected
+          </span>
+        )}
+        {statusUpper === 'FAILED' || statusUpper === 'VERIFICATION_FAILED' && (
+          <span className="bg-parchment text-rose-600 border rose-300">
+            <AlertTriangle className="w-3 h-3" /> {status}
+          </span>
+        )}
+        {statusUpper === '' && (
+          <span className="bg-softPaper text-slate-500">{status}</span>
+        )}
+      </span>
+    );
   };
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-warm-mist pb-5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
-            <ShieldAlert className="w-7 h-7 text-indigo-400" />
+          <h1 className="text-2xl font-bold tracking-tight text-ink flex items-center gap-2">
+            <ShieldAlert className="w-7 h-7 text-brand-accent" />
             Human-in-the-Loop Approvals & Action Center
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-slate-500 mt-1">
             Authorize high/medium-risk AI employee actions with cryptographic signing and view complete action history.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => activeTab === 'pending' ? fetchApprovals() : fetchHistory()}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setActiveTab('pending' === activeTab ? 'history' : 'pending')}
             disabled={loading}
             className="flex items-center gap-1.5"
           >
@@ -168,31 +203,31 @@ export default function HumanApprovalsPage() {
       {/* Notifications / Feedback */}
       {feedback && (
         <div className={`p-4 rounded-lg flex items-center justify-between border ${
-          feedback.type === 'success' 
-            ? 'bg-emerald-950/40 border-emerald-800 text-emerald-200' 
-            : 'bg-rose-950/40 border-rose-800 text-rose-200'
+          feedback.type === 'success'
+            ? 'bg-softPaper text-slate-300 border-emerald-800/30'
+            : 'bg-parchment text-slate-300 border-warm-mist'
         }`}>
           <span className="text-sm">{feedback.message}</span>
-          <button onClick={() => setFeedback(null)} className="text-slate-400 hover:text-slate-200 text-sm">
+          <button onClick={() => setFeedback(null)} className="text-slate-500 hover:text-slate-400 text-sm">
             Dismiss
           </button>
         </div>
       )}
 
       {/* Navigation Tabs */}
-      <div className="flex border-b border-slate-800 gap-6 text-sm font-medium">
+      <div className="flex border-b border-warm-mist gap-6 text-sm font-medium">
         <button
           onClick={() => setActiveTab('pending')}
           className={`pb-3 border-b-2 flex items-center gap-2 transition-colors ${
             activeTab === 'pending'
-              ? 'border-indigo-500 text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-300'
+              ? 'border-brand-accent text-brand-accent'
+              : 'border-transparent text-slate-500 hover:text-slate-400'
           }`}
         >
           <Clock className="w-4 h-4" />
           Pending Approvals
           {approvals.length > 0 && (
-            <span className="ml-1.5 px-2 py-0.5 text-xs rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            <span className="ml-1.5 px-2 py-0.5 text-xs rounded-full bg-brand-accent/10 text-brand-accent border-brand-accent/20">
               {approvals.length}
             </span>
           )}
@@ -202,8 +237,8 @@ export default function HumanApprovalsPage() {
           onClick={() => setActiveTab('history')}
           className={`pb-3 border-b-2 flex items-center gap-2 transition-colors ${
             activeTab === 'history'
-              ? 'border-indigo-500 text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-300'
+              ? 'border-brand-accent text-brand-accent'
+              : 'border-transparent text-slate-500 hover:text-slate-400'
           }`}
         >
           <History className="w-4 h-4" />
@@ -215,31 +250,31 @@ export default function HumanApprovalsPage() {
       {activeTab === 'pending' && (
         <div className="space-y-4">
           {loading && approvals.length === 0 ? (
-            <Card className="py-12 text-center text-slate-400">
-              <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-400" />
+            <Card className="py-12 text-center text-slate-500">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-brand-accent" />
               <p className="text-sm">Loading pending approval requests...</p>
             </Card>
           ) : approvals.length === 0 ? (
-            <Card className="py-12 text-center text-slate-400 border-dashed">
-              <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-emerald-400 opacity-80" />
-              <h3 className="text-base font-medium text-slate-200">No Actions Pending Approval</h3>
-              <p className="text-sm text-slate-400 mt-1 max-w-md mx-auto">
+            <Card className="py-12 text-center text-slate-500 border-dashed">
+              <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-brand-accent opacity-80" />
+              <h3 className="text-base font-medium text-ink">No Actions Pending Approval</h3>
+              <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
                 All external business actions have been evaluated or executed. New requests requiring human confirmation will appear here.
               </p>
             </Card>
           ) : (
             <div className="grid gap-4">
               {approvals.map((appr) => (
-                <Card key={appr.id} className="border-slate-800 hover:border-slate-700 transition-colors">
+                <Card key={appr.id} className="border-warm-mist rounded-lg hover:border-warm-mist/50 transition-colors">
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                     <div className="space-y-2 flex-1">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-slate-800 border border-slate-700">
+                        <div className="p-2 rounded-lg bg-slate-100 border border-warm-mist/30">
                           {getActionIcon(appr.action_type)}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-slate-200 uppercase tracking-wide text-sm">
+                            <span className="font-semibold text-ink uppercase tracking-wide text-sm">
                               {appr.action_type.replace('_', ' ')}
                             </span>
                             {getRiskBadge(appr.risk_level)}
@@ -250,9 +285,9 @@ export default function HumanApprovalsPage() {
                         </div>
                       </div>
 
-                      <div className="bg-slate-950/60 p-3 rounded-lg border border-slate-800/80 text-sm text-slate-300">
-                        <p className="font-medium text-slate-200">Action Summary:</p>
-                        <p className="text-slate-400 text-xs mt-0.5">{appr.payload_summary}</p>
+                      <div className="bg-slate-100/60 p-3 rounded-lg border border-warm-mist/30 text-xs text-slate-500">
+                        <p className="font-medium text-ink">Action Summary:</p>
+                        <p className="text-slate-400 mt-0.5">{appr.payload_summary}</p>
                       </div>
 
                       {appr.requested_by && (
@@ -267,33 +302,33 @@ export default function HumanApprovalsPage() {
                           placeholder="Optional approval/rejection note..."
                           value={actionReason[appr.id] || ''}
                           onChange={(e) => setActionReason({ ...actionReason, [appr.id]: e.target.value })}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                          className="w-full bg-slate-100 border border-warm-mist rounded-lg px-3 py-1.5 text-xs text-slate-500 placeholder-slate-400 focus:outline-none focus:border-brand-accent"
                         />
                       </div>
                     </div>
 
                     <div className="flex md:flex-col gap-2 shrink-0 justify-end pt-2 md:pt-0">
-                      <Button
+                      <FilledActionButton
                         variant="primary"
                         size="sm"
                         onClick={() => handleApprove(appr.id)}
                         disabled={processingId === appr.id}
-                        className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                      >
+                        className="flex items-center gap-1.5"
+                        >
                         <Check className="w-3.5 h-3.5" />
                         {processingId === appr.id ? 'Approving...' : 'Approve'}
-                      </Button>
+                      </FilledActionButton>
 
-                      <Button
-                        variant="outline"
+                      <FilledActionButton
+                        variant="secondary"
                         size="sm"
                         onClick={() => handleReject(appr.id)}
                         disabled={processingId === appr.id}
-                        className="flex items-center gap-1.5 text-rose-400 border-rose-900/50 hover:bg-rose-950/30"
+                        className="flex items-center gap-1.5 text-slate-400 border-warm-mist hover:bg-parchment/30"
                       >
                         <XCircle className="w-3.5 h-3.5" />
                         Reject
-                      </Button>
+                      </FilledActionButton>
                     </div>
                   </div>
                 </Card>
@@ -307,22 +342,22 @@ export default function HumanApprovalsPage() {
       {activeTab === 'history' && (
         <div>
           {loading && history.length === 0 ? (
-            <Card className="py-12 text-center text-slate-400">
-              <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-400" />
+            <Card className="py-12 text-center text-slate-500">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-brand-accent" />
               <p className="text-sm">Loading action audit history...</p>
             </Card>
           ) : history.length === 0 ? (
-            <Card className="py-12 text-center text-slate-400 border-dashed">
+            <Card className="py-12 text-center text-slate-500 border-dashed">
               <History className="w-8 h-8 mx-auto mb-2 text-slate-500" />
-              <h3 className="text-base font-medium text-slate-200">No Action History Recorded</h3>
-              <p className="text-sm text-slate-400 mt-1">
+              <h3 className="text-base font-medium text-ink">No Action History Recorded</h3>
+              <p className="text-sm text-slate-500 mt-1">
                 Completed and rejected action executions will be recorded in this immutable audit log.
               </p>
             </Card>
           ) : (
-            <div className="overflow-x-auto border border-slate-800 rounded-xl bg-slate-900/50">
-              <table className="w-full text-left text-sm text-slate-300">
-                <thead className="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+            <div className="overflow-x-auto border border-warm-mist rounded-xl bg-slate-100/50">
+              <table className="w-full text-left text-sm text-slate-500">
+                <thead className="bg-slate-100 text-xs uppercase text-slate-500 border-b border-warm-mist">
                   <tr>
                     <th className="px-4 py-3">Action</th>
                     <th className="px-4 py-3">Status</th>
@@ -332,10 +367,10 @@ export default function HumanApprovalsPage() {
                     <th className="px-4 py-3">Reference</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-warm-mist/30">
                   {history.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="px-4 py-3 font-medium text-slate-200 flex items-center gap-2">
+                    <tr key={item.id} className="hover:bg-slate-100/30 transition-colors">
+                      <td className="px-4 py-3 font-medium text-ink flex items-center gap-2">
                         {getActionIcon(item.action_type)}
                         <span className="capitalize">{item.action_type.replace('_', ' ')}</span>
                       </td>
@@ -343,7 +378,7 @@ export default function HumanApprovalsPage() {
                       <td className="px-4 py-3">{getRiskBadge(item.risk_level)}</td>
                       <td className="px-4 py-3">
                         {item.verified ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-400 text-xs">
+                          <span className="inline-flex items-center gap-1 text-brand-accent text-xs">
                             <CheckCircle2 className="w-3.5 h-3.5" /> Verified
                           </span>
                         ) : (
@@ -367,3 +402,4 @@ export default function HumanApprovalsPage() {
     </div>
   );
 }
+

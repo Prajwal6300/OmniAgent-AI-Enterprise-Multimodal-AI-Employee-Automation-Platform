@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/services/api/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { FilledActionButton } from '@/components/ui/FilledActionButton';
 import {
   Bell,
   CheckCheck,
@@ -72,14 +73,14 @@ export default function NotificationsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-100">Notifications</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-ink">Notifications</h1>
             {unreadCount > 0 && (
-              <span className="bg-blue-600 text-white text-xs px-2.5 py-0.5 rounded-full font-semibold">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-accent/10 text-brand-accent border brand-accent/30">
                 {unreadCount} new
               </span>
             )}
           </div>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-sm text-slate-500 mt-1">
             Approval requests, system alerts, and workflow execution notices.
           </p>
         </div>
@@ -89,34 +90,34 @@ export default function NotificationsPage() {
             onClick={() => setUnreadOnly(!unreadOnly)}
             className={`text-xs px-3 py-1.5 rounded-md border transition-colors ${
               unreadOnly
-                ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-                : 'border-slate-800 text-slate-400 hover:text-slate-200'
+                ? 'bg-brand-accent/10 border-brand-accent/30 text-brand-accent'
+                : 'border-warm-mist text-slate-500 hover:text-slate-400'
             }`}
           >
             {unreadOnly ? 'Showing Unread' : 'Show All'}
           </button>
           {unreadCount > 0 && (
-            <Button
+            <FilledActionButton
               variant="outline"
               size="sm"
               onClick={() => markAllReadMutation.mutate()}
               disabled={markAllReadMutation.isPending}
-              className="text-xs flex items-center gap-1.5 border-slate-800 text-slate-300 hover:bg-slate-800"
+              className="text-xs flex items-center gap-1.5 border-warm-mist text-slate-500 hover:bg-slate-100"
             >
               <CheckCheck className="w-3.5 h-3.5" />
               Mark all as read
-            </Button>
+            </FilledActionButton>
           )}
         </div>
       </div>
 
       {/* Notifications List */}
       {isLoading ? (
-        <Card className="p-12 text-center text-slate-400">Loading notifications...</Card>
+        <Card className="p-12 text-center text-slate-500">Loading notifications...</Card>
       ) : notifications.length === 0 ? (
-        <Card className="p-12 text-center text-slate-400 border-slate-800 bg-slate-900/40">
-          <Bell className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-          <p className="text-base font-medium text-slate-300">No notifications</p>
+        <Card className="p-12 text-center text-slate-500 border-warm-mist bg-parchment/50">
+          <Bell className="w-10 h-10 text-brand-accent mx-auto mb-3" />
+          <p className="text-base font-medium text-ink">No notifications</p>
           <p className="text-xs text-slate-500 mt-1">
             {unreadOnly ? 'You have read all pending notifications.' : 'Your inbox is clear.'}
           </p>
@@ -128,9 +129,9 @@ export default function NotificationsPage() {
               key={item.id}
               className={`p-4 border transition-all ${
                 item.is_read
-                  ? 'border-slate-800/60 bg-slate-900/40 opacity-75'
-                  : 'border-slate-700 bg-slate-900/90 shadow-sm'
-              }`}
+                  ? 'border-warm-mist/30 bg-slate-100/60 opacity-75'
+                  : 'border-brand-accent/30 bg-slate-100/90 shadow-sm'}
+              `}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
@@ -140,18 +141,18 @@ export default function NotificationsPage() {
                     ) : item.notification_type === 'WARNING' ? (
                       <AlertTriangle className="w-5 h-5 text-amber-400" />
                     ) : (
-                      <Info className="w-5 h-5 text-blue-400" />
+                      <Info className="w-5 h-5 text-brand-accent" />
                     )}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-slate-100">{item.title}</span>
-                      <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                      <span className="text-sm font-semibold text-ink">{item.title}</span>
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-brand-accent/10 text-brand-accent border brand-accent/30">
                         {item.notification_type}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">{item.message}</p>
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-2">
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">{item.message}</p>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-2">
                       <Clock className="w-3 h-3" />
                       <span>{new Date(item.created_at).toLocaleString()}</span>
                     </div>
@@ -159,15 +160,15 @@ export default function NotificationsPage() {
                 </div>
 
                 {!item.is_read && (
-                  <Button
+                  <FilledActionButton
                     variant="ghost"
                     size="sm"
                     onClick={() => markReadMutation.mutate(item.id)}
-                    className="text-xs text-slate-400 hover:text-slate-100"
+                    className="text-xs text-brand-accent hover:text-ink"
                     title="Mark as read"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                  </Button>
+                  </FilledActionButton>
                 )}
               </div>
             </Card>
